@@ -11,6 +11,7 @@
     <script src="js/converter.js"></script>
     <script src="js/editor.js"></script>
     <script src="js/main.js"></script>
+    <script src="js/loading.js"></script>
 </head>
 <body>
     <div class="container">
@@ -19,7 +20,10 @@
         <p>Enter your proxy configuration: (Supported Protocols: VMess, VLESS, Trojan, Hysteria2, Shadowsocks)</p>
         <textarea id="input" placeholder="Enter your proxy configuration here..."></textarea>
         <button onclick="convertConfig()">Convert to Sing-box</button>
-        <button onclick="clearAll()">Clear</button>
+        <button id="clearButton" onclick="clearAll()" disabled>Clear</button>
+        <div id="loading" class="loading-container" style="display:none;">
+            <div class="terminal-loading"></div>
+        </div>
         <div id="error" class="error"></div>
         <h3>Sing-box Configuration:</h3>
         <div id="editor"></div>
