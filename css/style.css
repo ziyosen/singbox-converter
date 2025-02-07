@@ -16,6 +16,14 @@ body {
     margin: 20px auto;
 }
 
+.version {
+    color: #4CAF50;
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+}
+
 textarea {
     width: 100%;
     box-sizing: border-box;
