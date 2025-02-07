@@ -1,6 +1,15 @@
 function convertVmess(input) {
     try {
         const data = JSON.parse(atob(input.replace('vmess://', '')));
+        if (!data.add || !data.port || !data.id) return null;
+        
+        const transport = {};
+        if (data.net === 'ws' || data.net === 'h2') {
+            if (data.path) transport.path = data.path;
+            if (data.host) transport.headers = { Host: data.host };
+            transport.type = data.net;
+        }
+        
         return {
             type: "vmess",
             tag: `vmess-${generateUUID().slice(0, 8)}`,
@@ -9,7 +18,7 @@ function convertVmess(input) {
             uuid: data.id,
             security: data.scy || "auto",
             alter_id: parseInt(data.aid || 0),
-            transport: createTransport(data),
+            transport: transport,
             tls: {
                 enabled: data.tls === 'tls',
                 insecure: true,
@@ -24,9 +33,19 @@ function convertVmess(input) {
 function convertVless(input) {
     try {
         const url = new URL(input);
+        if (url.protocol.toLowerCase() !== 'vless:' || !url.hostname) return null;
+        
         const address = url.hostname;
         const port = url.port || 443;
         const params = new URLSearchParams(url.search);
+        
+        const transport = {};
+        if (params.get('type') === 'ws') {
+            if (params.get('path')) transport.path = params.get('path');
+            if (params.get('host')) transport.headers = { Host: params.get('host') };
+            transport.type = 'ws';
+        }
+        
         return {
             type: "vless",
             tag: `vless-${generateUUID().slice(0, 8)}`,
@@ -34,7 +53,7 @@ function convertVless(input) {
             server_port: parseInt(port),
             uuid: url.username,
             flow: params.get('flow') || '',
-            transport: createTransportFromParams(params),
+            transport: transport,
             tls: {
                 enabled: true,
                 server_name: params.get('sni') || address,
@@ -49,14 +68,23 @@ function convertVless(input) {
 function convertTrojan(input) {
     try {
         const url = new URL(input);
+        if (url.protocol.toLowerCase() !== 'trojan:' || !url.hostname) return null;
+        
         const params = new URLSearchParams(url.search);
+        const transport = {};
+        const type = params.get('type');
+        if (type && type !== 'tcp' && params.get('path')) {
+            transport.path = params.get('path');
+            transport.type = type;
+        }
+        
         return {
             type: "trojan",
             tag: `trojan-${generateUUID().slice(0, 8)}`,
             server: url.hostname,
             server_port: parseInt(url.port || 443),
             password: url.username,
-            transport: createTransportFromParams(params),
+            transport: transport,
             tls: {
                 enabled: true,
                 server_name: params.get('sni') || url.hostname,
@@ -72,6 +100,8 @@ function convertTrojan(input) {
 function convertHysteria2(input) {
     try {
         const url = new URL(input);
+        if (!['hysteria2:', 'hy2:'].includes(url.protocol.toLowerCase()) || !url.hostname || !url.port) return null;
+        
         const params = new URLSearchParams(url.search);
         return {
             type: "hysteria2",
@@ -97,6 +127,9 @@ function convertShadowsocks(input) {
         const [methodAndPass, serverAndPort] = serverPart.split('@');
         const [method, password] = atob(methodAndPass).split(':');
         const [server, port] = serverAndPort.split(':');
+        
+        if (!server || !port) return null;
+        
         return {
             type: "shadowsocks",
             tag: `ss-${generateUUID().slice(0, 8)}`,
