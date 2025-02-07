@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/json");
     editor.setReadOnly(true);
+    editor.setOption("wrap", true);
 });
 
 function clearAll() {
@@ -21,17 +22,19 @@ function copyToClipboard() {
         .catch(err => console.error('Failed to copy:', err));
 }
 
-function typeText(text, element, speed = 50) {
+function typeText(text) {
     let index = 0;
     editor.setValue('');
-    
-    function type() {
-        if (index < text.length) {
-            editor.insert(text.charAt(index));
-            index++;
-            setTimeout(type, speed);
+    const lines = text.split('\n');
+    let currentLine = 0;
+
+    function typeLine() {
+        if (currentLine < lines.length) {
+            editor.insert(lines[currentLine] + '\n');
+            currentLine++;
+            setTimeout(typeLine, 50);
         }
     }
     
-    type();
+    typeLine();
 }
