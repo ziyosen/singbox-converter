@@ -24,7 +24,8 @@ function convertConfig() {
         }
         
         const singboxConfig = createSingboxConfig(config);
-        typeText(JSON.stringify(singboxConfig));
+        const jsonString = JSON.stringify(singboxConfig);
+        typeText(jsonString);
         errorDiv.textContent = '';
     } catch (error) {
         errorDiv.textContent = error.message;
