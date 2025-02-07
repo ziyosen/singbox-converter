@@ -25,14 +25,13 @@ textarea, input, button {
     50% { opacity: 0; }
 }
 
-.typing-effect {
-    white-space: pre-wrap;
-    overflow: hidden;
-    border-right: 2px solid #4CAF50;
-    animation: typing 0.05s steps(1, end);
+.terminal-line {
+    white-space: pre;
+    animation: terminal-line-fade 0.5s forwards;
+    opacity: 0;
 }
 
-@keyframes typing {
-    from { width: 0 }
-    to { width: 100% }
+@keyframes terminal-line-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
