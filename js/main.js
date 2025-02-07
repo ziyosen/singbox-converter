@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.session.setMode("ace/mode/json");
     editor.setReadOnly(true);
     editor.setOption("wrap", true);
+    editor.setShowPrintMargin(false);
 });
 
 function clearAll() {
@@ -23,18 +24,22 @@ function copyToClipboard() {
 }
 
 function typeText(text) {
+    let currentText = '';
     let index = 0;
     editor.setValue('');
-    const lines = text.split('\n');
-    let currentLine = 0;
-
-    function typeLine() {
-        if (currentLine < lines.length) {
-            editor.insert(lines[currentLine] + '\n');
-            currentLine++;
-            setTimeout(typeLine, 50);
+    
+    function type() {
+        if (index < text.length) {
+            currentText += text[index];
+            try {
+                const parsed = JSON.parse(currentText);
+                editor.setValue(JSON.stringify(parsed, null, 2));
+                editor.clearSelection();
+            } catch(e) {}
+            index++;
+            setTimeout(type, 30);
         }
     }
     
-    typeLine();
+    type();
 }
