@@ -24,6 +24,13 @@ body {
     font-size: 0.9em;
 }
 
+hr {
+    border: 0;
+    height: 1px;
+    background-color: #444;
+    margin: 15px 0;
+}
+
 textarea {
     width: 100%;
     box-sizing: border-box;
