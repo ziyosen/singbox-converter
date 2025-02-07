@@ -23,42 +23,91 @@ function copyToClipboard() {
         .catch(err => console.error('Failed to copy:', err));
 }
 
-function typeText(text) {
-    let currentText = '';
-    editor.setValue('');
+function showTerminalLoading() {
+    const editor = document.getElementById('editor');
+    const lines = [
+        'Initializing conversion...',
+        'Parsing input configuration...',
+        'Generating Sing-box configuration...',
+        'Optimizing network settings...',
+        'Finalizing configuration...'
+    ];
     
-    function animateTyping() {
-        return new Promise((resolve) => {
-            const totalDuration = 2000;
-            const slowPartLength = text.length * 0.3;
-            const fastPartLength = text.length - slowPartLength;
-
-            function typeSection(startIndex, endIndex, duration) {
-                return new Promise((sectionResolve) => {
-                    let start = startIndex;
-                    const step = () => {
-                        if (start < endIndex) {
-                            currentText = text.slice(0, start + 1);
-                            try {
-                                const parsed = JSON.parse(currentText);
-                                editor.setValue(JSON.stringify(parsed, null, 2));
-                                editor.clearSelection();
-                            } catch(e) {}
-                            start++;
-                            requestAnimationFrame(step);
-                        } else {
-                            sectionResolve();
-                        }
-                    };
-                    step();
-                });
+    editor.innerHTML = '';
+    let lineIndex = 0;
+    
+    function typeLine() {
+        if (lineIndex < lines.length) {
+            const line = document.createElement('div');
+            line.classList.add('terminal-line');
+            line.style.color = '#4CAF50';
+            
+            let charIndex = 0;
+            function typeChar() {
+                if (charIndex < lines[lineIndex].length) {
+                    line.textContent += lines[lineIndex][charIndex];
+                    charIndex++;
+                    setTimeout(typeChar, 50);
+                } else {
+                    editor.appendChild(line);
+                    lineIndex++;
+                    setTimeout(typeLine, 500);
+                }
             }
-
-            typeSection(0, slowPartLength, totalDuration * 0.6)
-                .then(() => typeSection(slowPartLength, text.length, totalDuration * 0.4))
-                .then(resolve);
-        });
+            
+            typeChar();
+        }
     }
+    
+    typeLine();
+}
 
-    animateTyping();
+function convertConfig() {
+    const input = document.getElementById('input').value.trim();
+    const errorDiv = document.getElementById('error');
+    const convertButton = document.querySelector('button[onclick="convertConfig()"]');
+    const clearButton = document.querySelector('button[onclick="clearAll()"]');
+    
+    clearButton.disabled = true;
+    
+    if (!input) {
+        errorDiv.textContent = 'Please enter a proxy configuration';
+        clearButton.disabled = false;
+        return;
+    }
+    
+    showTerminalLoading();
+    
+    setTimeout(() => {
+        try {
+            let config;
+            if (input.startsWith('vmess://')) {
+                config = convertVmess(input);
+            } else if (input.startsWith('vless://')) {
+                config = convertVless(input);
+            } else if (input.startsWith('trojan://')) {
+                config = convertTrojan(input);
+            } else if (input.startsWith('hysteria2://') || input.startsWith('hy2://')) {
+                config = convertHysteria2(input);
+            } else if (input.startsWith('ss://')) {
+                config = convertShadowsocks(input);
+            } else {
+                throw new Error('Unsupported protocol');
+            }
+            
+            const singboxConfig = createSingboxConfig(config);
+            const jsonString = JSON.stringify(singboxConfig, null, 2);
+            
+            editor.setValue(jsonString);
+            editor.clearSelection();
+            errorDiv.textContent = '';
+            
+            clearButton.disabled = false;
+        } catch (error) {
+            errorDiv.textContent = error.message;
+            editor.setValue('');
+            
+            clearButton.disabled = false;
+        }
+    }, 3000);
 }
