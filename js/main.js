@@ -22,24 +22,3 @@ function copyToClipboard() {
         .then(() => alert('Configuration copied to clipboard!'))
         .catch(err => console.error('Failed to copy:', err));
 }
-
-function typeText(text) {
-    let currentText = '';
-    let index = 0;
-    editor.setValue('');
-    
-    function type() {
-        if (index < text.length) {
-            currentText += text[index];
-            try {
-                const parsed = JSON.parse(currentText);
-                editor.setValue(JSON.stringify(parsed, null, 2));
-                editor.clearSelection();
-            } catch(e) {}
-            index++;
-            setTimeout(type, 30);
-        }
-    }
-    
-    type();
-}
