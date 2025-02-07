@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+* {
+    font-family: 'IBM Plex Mono', monospace;
+}
+
+.ace_editor {
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+
+.ace_content {
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+
+textarea, input, button {
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+
+.terminal-cursor {
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+.typing-effect {
+    white-space: pre-wrap;
+    overflow: hidden;
+    border-right: 2px solid #4CAF50;
+    animation: typing 0.05s steps(1, end);
+}
+
+@keyframes typing {
+    from { width: 0 }
+    to { width: 100% }
+}
