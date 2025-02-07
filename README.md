@@ -1,5 +1,7 @@
 # Proxy to Sing-box Converter
-
+<p align="center">
+  <img src="https://img.shields.io/badge/version-0.7.0-beta-blue.svg?cacheSeconds=2592000" />
+</p>
 ## 🚀 Project Overview
 
 Proxy to Sing-box Converter is a web-based tool designed to simplify the process of converting various proxy configurations to the Sing-box format. This intuitive web application supports multiple proxy protocols, making it easy for users to generate compatible configurations.
