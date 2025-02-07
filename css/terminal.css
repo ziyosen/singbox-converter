@@ -16,23 +16,22 @@ textarea, input, button {
     font-family: 'IBM Plex Mono', monospace !important;
 }
 
-.terminal-cursor {
-    animation: blink 1s step-end infinite;
+.loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
 }
 
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
+.terminal-loading {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    animation: terminal-pulse 1s infinite alternate;
 }
 
-.typing-effect {
-    white-space: pre-wrap;
-    overflow: hidden;
-    border-right: 2px solid #4CAF50;
-    animation: typing 0.05s steps(1, end);
-}
-
-@keyframes typing {
-    from { width: 0 }
-    to { width: 100% }
+@keyframes terminal-pulse {
+    0% { transform: scale(0.7); opacity: 0.6; }
+    100% { transform: scale(1.3); opacity: 1; }
 }
