@@ -15,23 +15,32 @@
             color: #ffffff;
         }
         .container {
-            background-color: #2d2d2d;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        }
-        textarea {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border: 1px solid #444;
-            border-radius: 4px;
-            resize: vertical;
-            background-color: #363636;
-            color: #ffffff;
-            min-height: 150px;
-            font-family: monospace;
-        }
+        background-color: #2d2d2d;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        max-width: 800px;
+        margin: 20px auto;
+    }
+    textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 12px;
+        margin: 8px 0;
+        border: 1px solid #444;
+        border-radius: 4px;
+        resize: vertical;
+        background-color: #363636;
+        color: #ffffff;
+        min-height: 150px;
+        font-family: monospace;
+        font-size: 14px;
+    }
+    textarea:focus {
+        outline: none;
+        border-color: #4CAF50;
+        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+    }
         button {
             background-color: #4CAF50;
             color: white;
