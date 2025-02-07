@@ -24,22 +24,36 @@ function copyToClipboard() {
 }
 
 function typeText(text) {
-    let currentText = '';
-    let index = 0;
+    const formattedText = JSON.stringify(JSON.parse(text), null, 2);
+    
     editor.setValue('');
     
-    function type() {
-        if (index < text.length) {
-            currentText += text[index];
-            try {
-                const parsed = JSON.parse(currentText);
-                editor.setValue(JSON.stringify(parsed, null, 2));
-                editor.clearSelection();
-            } catch(e) {}
-            index++;
-            setTimeout(type, 30);
-        }
-    }
+    const lines = formattedText.split('\n');
     
-    type();
+    let currentLine = 0;
+    let currentChar = 0;
+
+    function typeNextChar() {
+        if (currentLine >= lines.length) {
+            return;
+        }
+
+        const line = lines[currentLine];
+
+        if (currentChar >= line.length) {
+            editor.insert('\n');
+            currentLine++;
+            currentChar = 0;
+            
+            setTimeout(typeNextChar, 50);
+            return;
+        }
+
+        editor.insert(line[currentChar]);
+        currentChar++;
+
+        setTimeout(typeNextChar, Math.random() * 30 + 10);
+    }
+
+    typeNextChar();
 }
