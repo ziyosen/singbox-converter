@@ -24,35 +24,28 @@ function copyToClipboard() {
 }
 
 function typeText(text) {
-    const formattedText = JSON.stringify(JSON.parse(text), null, 2);
-    
     editor.setValue('');
-    
-    const lines = formattedText.split('\n');
-    
+    const lines = JSON.stringify(JSON.parse(text), null, 2).split('\n');
     let currentLine = 0;
     let currentChar = 0;
 
     function typeNextChar() {
-        if (currentLine >= lines.length) {
-            return;
-        }
-
-        const line = lines[currentLine];
-
-        if (currentChar >= line.length) {
-            editor.insert('\n');
-            currentLine++;
-            currentChar = 0;
+        if (currentLine < lines.length) {
+            const line = lines[currentLine];
             
-            setTimeout(typeNextChar, 50);
-            return;
+            if (currentChar <= line.length) {
+                editor.setValue(lines.slice(0, currentLine).join('\n') + 
+                    (lines.slice(0, currentLine).length > 0 ? '\n' : '') + 
+                    line.slice(0, currentChar));
+                
+                currentChar++;
+                setTimeout(typeNextChar, 20);
+            } else {
+                currentLine++;
+                currentChar = 0;
+                setTimeout(typeNextChar, 20);
+            }
         }
-
-        editor.insert(line[currentChar]);
-        currentChar++;
-
-        setTimeout(typeNextChar, Math.random() * 30 + 10);
     }
 
     typeNextChar();
