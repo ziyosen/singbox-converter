@@ -25,21 +25,40 @@ function copyToClipboard() {
 
 function typeText(text) {
     let currentText = '';
-    let index = 0;
     editor.setValue('');
     
-    function type() {
-        if (index < text.length) {
-            currentText += text[index];
-            try {
-                const parsed = JSON.parse(currentText);
-                editor.setValue(JSON.stringify(parsed, null, 2));
-                editor.clearSelection();
-            } catch(e) {}
-            index++;
-            setTimeout(type, 30);
-        }
+    function animateTyping() {
+        return new Promise((resolve) => {
+            const totalDuration = 2000;
+            const slowPartLength = text.length * 0.3;
+            const fastPartLength = text.length - slowPartLength;
+
+            function typeSection(startIndex, endIndex, duration) {
+                return new Promise((sectionResolve) => {
+                    let start = startIndex;
+                    const step = () => {
+                        if (start < endIndex) {
+                            currentText = text.slice(0, start + 1);
+                            try {
+                                const parsed = JSON.parse(currentText);
+                                editor.setValue(JSON.stringify(parsed, null, 2));
+                                editor.clearSelection();
+                            } catch(e) {}
+                            start++;
+                            requestAnimationFrame(step);
+                        } else {
+                            sectionResolve();
+                        }
+                    };
+                    step();
+                });
+            }
+
+            typeSection(0, slowPartLength, totalDuration * 0.6)
+                .then(() => typeSection(slowPartLength, text.length, totalDuration * 0.4))
+                .then(resolve);
+        });
     }
-    
-    type();
+
+    animateTyping();
 }
