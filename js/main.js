@@ -23,38 +23,23 @@ function copyToClipboard() {
         .catch(err => console.error('Failed to copy:', err));
 }
 
-function typeText(jsonText) {
+function typeText(text) {
+    let currentText = '';
+    let index = 0;
     editor.setValue('');
     
-    const lines = JSON.stringify(JSON.parse(jsonText), null, 2).split('\n');
-    let currentLine = 0;
-    
-    function animateLine() {
-        if (currentLine < lines.length) {
-            const line = lines[currentLine];
-            let charIndex = 0;
-            
-            function typeChar() {
-                if (charIndex <= line.length) {
-                    const partialLine = line.substring(0, charIndex);
-                    const fullContent = lines.slice(0, currentLine).join('\n') + 
-                                        (currentLine > 0 ? '\n' : '') + 
-                                        partialLine;
-                    
-                    editor.setValue(fullContent);
-                    editor.clearSelection();
-                    
-                    charIndex++;
-                    setTimeout(typeChar, 20);
-                } else {
-                    currentLine++;
-                    setTimeout(animateLine, 50);
-                }
-            }
-            
-            typeChar();
+    function type() {
+        if (index < text.length) {
+            currentText += text[index];
+            try {
+                const parsed = JSON.parse(currentText);
+                editor.setValue(JSON.stringify(parsed, null, 2));
+                editor.clearSelection();
+            } catch(e) {}
+            index++;
+            setTimeout(type, 30);
         }
     }
     
-    animateLine();
+    type();
 }
