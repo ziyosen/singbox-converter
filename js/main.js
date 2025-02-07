@@ -23,30 +23,38 @@ function copyToClipboard() {
         .catch(err => console.error('Failed to copy:', err));
 }
 
-function typeText(text) {
+function typeText(jsonText) {
     editor.setValue('');
-    const lines = JSON.stringify(JSON.parse(text), null, 2).split('\n');
+    
+    const lines = JSON.stringify(JSON.parse(jsonText), null, 2).split('\n');
     let currentLine = 0;
-    let currentChar = 0;
-
-    function typeNextChar() {
+    
+    function animateLine() {
         if (currentLine < lines.length) {
             const line = lines[currentLine];
+            let charIndex = 0;
             
-            if (currentChar <= line.length) {
-                editor.setValue(lines.slice(0, currentLine).join('\n') + 
-                    (lines.slice(0, currentLine).length > 0 ? '\n' : '') + 
-                    line.slice(0, currentChar));
-                
-                currentChar++;
-                setTimeout(typeNextChar, 20);
-            } else {
-                currentLine++;
-                currentChar = 0;
-                setTimeout(typeNextChar, 20);
+            function typeChar() {
+                if (charIndex <= line.length) {
+                    const partialLine = line.substring(0, charIndex);
+                    const fullContent = lines.slice(0, currentLine).join('\n') + 
+                                        (currentLine > 0 ? '\n' : '') + 
+                                        partialLine;
+                    
+                    editor.setValue(fullContent);
+                    editor.clearSelection();
+                    
+                    charIndex++;
+                    setTimeout(typeChar, 20);
+                } else {
+                    currentLine++;
+                    setTimeout(animateLine, 50);
+                }
             }
+            
+            typeChar();
         }
     }
-
-    typeNextChar();
+    
+    animateLine();
 }
