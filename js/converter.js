@@ -24,8 +24,8 @@ function convertConfig() {
         }
         
         const singboxConfig = createSingboxConfig(config);
-        const jsonString = JSON.stringify(singboxConfig, null, 2);
-        typeText(jsonString, 'editor');
+        const jsonString = JSON.stringify(singboxConfig);
+        typeText(jsonString);
         errorDiv.textContent = '';
     } catch (error) {
         errorDiv.textContent = error.message;
@@ -35,40 +35,40 @@ function convertConfig() {
 
 function createSingboxConfig(outbound) {
     return {
-        "dns": {
-            "servers": [
+        dns: {
+            servers: [
                 {
-                    "address": "tls://208.67.222.123",
-                    "address_resolver": "local-dns",
-                    "detour": "proxy",
-                    "tag": "proxy-dns"
+                    address: "tls://208.67.222.123",
+                    address_resolver: "local-dns",
+                    detour: "proxy",
+                    tag: "proxy-dns"
                 },
                 {
-                    "address": "local",
-                    "detour": "direct",
-                    "tag": "local-dns"
+                    address: "local",
+                    detour: "direct",
+                    tag: "local-dns"
                 }
             ]
         },
-        "inbounds": [
+        inbounds: [
             {
-                "type": "mixed",
-                "listen": "127.0.0.1",
-                "listen_port": 2080
+                type: "mixed",
+                listen: "127.0.0.1",
+                listen_port: 2080
             }
         ],
-        "outbounds": [
+        outbounds: [
             outbound,
             {
-                "type": "direct",
-                "tag": "direct"
+                type: "direct",
+                tag: "direct"
             }
         ],
-        "route": {
-            "rules": [
+        route: {
+            rules: [
                 {
-                    "protocol": "dns",
-                    "outbound": "dns-out"
+                    protocol: "dns",
+                    outbound: "dns-out"
                 }
             ]
         }
