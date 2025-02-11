@@ -16,11 +16,6 @@
 <body>
     <div class="terminal-container">
         <div class="terminal-header">
-            <div class="terminal-buttons">
-                <span class="terminal-button close"></span>
-                <span class="terminal-button minimize"></span>
-                <span class="terminal-button maximize"></span>
-            </div>
             <div class="terminal-title">Sing-box Config Converter</div>
         </div>
         
@@ -33,8 +28,8 @@
             </div>
             
             <div class="terminal-actions">
-                <button onclick="convertConfig()">Convert to Sing-box</button>
-                <button id="clearButton" onclick="clearAll()" disabled>Clear</button>
+                <button onclick="convertConfig()" class="glow-button primary">Convert to Sing-box</button>
+                <button id="clearButton" onclick="clearAll()" class="glow-button secondary" disabled>Clear</button>
             </div>
             
             <div id="loading" class="loading-container">
@@ -49,7 +44,7 @@
             </div>
             
             <div class="terminal-actions">
-                <button onclick="copyToClipboard()">Copy to Clipboard</button>
+                <button onclick="copyToClipboard()" class="glow-button">Copy to Clipboard</button>
             </div>
         </div>
     </div>
