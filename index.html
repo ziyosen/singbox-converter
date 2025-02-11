@@ -16,54 +16,22 @@
 <body>
     <div class="container">
         <h1>Sing-box Config Converter</h1>
-        <p class="version">v1.14.0+ IR</p>
-        
-        <div class="settings-section">
-            <h3>تنظیمات پیشرفته ⚙️</h3>
-            <div class="input-group">
-                <label>MTU:</label>
-                <input type="number" id="mtu" placeholder="پیشفرض: 1500" min="576" max="9000">
-            </div>
-            <div class="input-group">
-                <label>DNS اصلی:</label>
-                <input type="text" id="main-dns" placeholder="پیشفرض: local">
-            </div>
-            <div class="input-group">
-                <label>DNS جایگزین:</label>
-                <input type="text" id="alt-dns" placeholder="پیشفرض: tls://1.1.1.1">
-            </div>
-            <div class="input-group">
-                <label>آدرس Rule-Set:</label>
-                <input type="text" id="ruleset-url" 
-                    value="https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-ir.srs">
-            </div>
-        </div>
-
+        <p class="version">v0.7.0-beta</p>
         <hr>
-        <p>کانفیگ‌های پروکسی خود را وارد کنید (هر خط یک کانفیگ):</p>
-        <textarea id="input" placeholder="vmess://...&#10;vless://...&#10;trojan://..."></textarea>
-        
-        <div class="action-buttons">
-            <button onclick="convertConfig()">تبدیل به Sing-box</button>
-            <button id="clearButton" onclick="clearAll()" disabled>پاک کردن همه</button>
-        </div>
-
+        <p>Enter your proxy configurations (one per line): (Supported Protocols: VMess, VLESS, Trojan, Hysteria2, Shadowsocks(ss))</p>
+        <textarea id="input" placeholder="Enter your proxy configurations here (one per line)..."></textarea>
+        <button onclick="convertConfig()">Convert to Sing-box</button>
+        <button id="clearButton" onclick="clearAll()" disabled>Clear</button>
         <div id="loading" class="loading-container" style="display:none;">
             <div class="terminal-loading"></div>
         </div>
-        
         <div id="error" class="error"></div>
-        
-        <h3>کانفیگ نهایی:</h3>
+        <h3>Sing-box Configuration:</h3>
         <div id="editor"></div>
-        
-        <div class="output-actions">
-            <button onclick="copyToClipboard()">کپی به حافظه</button>
-        </div>
+        <button onclick="copyToClipboard()">Copy to Clipboard</button>
     </div>
-
     <div class="footer">
-        توسعه داده شده توسط <a href="https://x.com/4n0nymou3" target="_blank">ناشناس</a>
+        Designed by <a href="https://x.com/4n0nymou3" target="_blank">Anonymous</a>
     </div>
 </body>
 </html>
