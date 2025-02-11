@@ -6,36 +6,62 @@
     <title>Sing-box Config Converter</title>
     <link href="css/style.css" rel="stylesheet">
     <link href="css/terminal.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/converter.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.14.0/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.14.0/mode-json.js"></script>
     <script src="js/editor.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/converter.js"></script>
     <script src="js/loading.js"></script>
+    <script src="js/main.js"></script>
+    <script src="utils.js"></script>
+
 </head>
 <body>
     <div class="container">
         <h1>Sing-box Config Converter</h1>
-        <p class="version">v0.7.0-beta</p>
+        <p class="version">v0.8.0-beta</p>
         <hr>
-        <p>Enter your proxy configurations (one per line): (Supported Protocols: VMess, VLESS, Trojan, Hysteria2, Shadowsocks(ss))</p>
-        <textarea id="input" placeholder="Enter your proxy configurations here (one per line)..."></textarea>
-        <button onclick="convertConfig()">Convert to Sing-box</button>
-        <div class="toggle-container">
-            <span>TUN</span>
-            <button id="toggleTunButton" onclick="toggleTun()"></button>
+
+        <div class="input-section">
+            <label for="input">Enter your proxy configurations (one per line):</label>
+            <p>(Supported Protocols: VMess, VLESS, Trojan, Hysteria2, Shadowsocks(ss))</p>
+            <textarea id="input" placeholder="vmess://...&#10;vless://..."></textarea>
         </div>
-        <button id="clearButton" onclick="clearAll()" disabled>Clear</button>
-        <div id="loading" class="loading-container" style="display:none;">
+
+        <div class="loading-container" id="loading" style="display: none;">
             <div class="terminal-loading"></div>
         </div>
+
+        <div class="button-container">
+            <button onclick="convertConfig()">Convert to Sing-box Clear</button>
+            <button id="clearButton" onclick="clearAll()">Clear</button>
+            <button id="tunModeButton" class="toggle-button" onclick="toggleTunMode()">TUN Mode: <span id="tunModeStatus">OFF</span></button>
+        </div>
+
+        <hr>
+
+        <div class="output-section">
+            <h2>Sing-box Configuration:</h2>
+            <div id="editor" style="height: 400px; border:1px solid #ccc;"></div>
+            <button onclick="copyToClipboard()">Copy to Clipboard <i class="fa fa-clipboard"></i></button>
+        </div>
+
         <div id="error" class="error"></div>
-        <h3>Sing-box Configuration:</h3>
-        <div id="editor"></div>
-        <button onclick="copyToClipboard()">Copy to Clipboard</button>
     </div>
-    <div class="footer">
-        Designed by <a href="https://x.com/4n0nymou3" target="_blank">Anonymous</a>
-    </div>
+
+    <footer class="footer">
+        Designed by Anonymous | <a href="https://github.com/anonymous" target="_blank">GitHub</a>
+    </footer>
+
+    <script>
+        let tunModeEnabled = false;
+        function toggleTunMode() {
+            tunModeEnabled = !tunModeEnabled;
+            document.getElementById('tunModeStatus').textContent = tunModeEnabled ? 'ON' : 'OFF';
+            const tunModeButton = document.getElementById('tunModeButton');
+            tunModeButton.classList.toggle('active', tunModeEnabled);
+        }
+    </script>
 </body>
 </html>
