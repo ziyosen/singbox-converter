@@ -21,12 +21,8 @@
 
 .loading-container {
     display: none;
-    align-items: center;
-    gap: 15px;
+    justify-content: center;
     margin: 20px 0;
-    padding: 10px;
-    background-color: var(--terminal-input-bg);
-    border-radius: 4px;
 }
 
 .terminal-loading {
@@ -36,10 +32,6 @@
     border-radius: 50%;
     border-top-color: transparent;
     animation: terminal-spin 1s linear infinite;
-}
-
-.loading-text {
-    color: var(--terminal-green);
 }
 
 @keyframes terminal-spin {
