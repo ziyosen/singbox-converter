@@ -1,7 +1,6 @@
 function convertConfig() {
     const input = document.getElementById('input').value.trim();
     const errorDiv = document.getElementById('error');
-    const tunEnabled = document.getElementById('tunToggle').checked;
     
     if (!input) {
         errorDiv.textContent = 'Please enter proxy configurations';
@@ -42,7 +41,7 @@ function convertConfig() {
                 throw new Error('No valid configurations found');
             }
             
-            const singboxConfig = createSingboxConfig(outbounds, validTags, tunEnabled);
+            const singboxConfig = createSingboxConfig(outbounds, validTags);
             const jsonString = JSON.stringify(singboxConfig, null, 2);
             editor.setValue(jsonString);
             editor.clearSelection();
@@ -56,8 +55,8 @@ function convertConfig() {
     }, 2000);
 }
 
-function createSingboxConfig(outbounds, validTags, tunEnabled) {
-    const config = {
+function createSingboxConfig(outbounds, validTags) {
+    return {
         dns: {
             final: "local-dns",
             rules: [
@@ -90,6 +89,23 @@ function createSingboxConfig(outbounds, validTags, tunEnabled) {
             strategy: "prefer_ipv4"
         },
         inbounds: [
+            {
+                address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
+                auto_route: true,
+                endpoint_independent_nat: false,
+                mtu: 9000,
+                platform: {
+                    http_proxy: {
+                        enabled: true,
+                        server: "127.0.0.1",
+                        server_port: 2080
+                    }
+                },
+                sniff: true,
+                stack: "system",
+                strict_route: false,
+                type: "tun"
+            },
             {
                 listen: "127.0.0.1",
                 listen_port: 2080,
@@ -128,26 +144,4 @@ function createSingboxConfig(outbounds, validTags, tunEnabled) {
             ]
         }
     };
-
-    if (tunEnabled) {
-        config.inbounds.push({
-            address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
-            auto_route: true,
-            endpoint_independent_nat: false,
-            mtu: 9000,
-            platform: {
-                http_proxy: {
-                    enabled: true,
-                    server: "127.0.0.1",
-                    server_port: 2080
-                }
-            },
-            sniff: true,
-            stack: "system",
-            strict_route: false,
-            type: "tun"
-        });
-    }
-
-    return config;
 }
