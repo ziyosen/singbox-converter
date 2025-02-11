@@ -56,6 +56,67 @@ function convertConfig() {
 }
 
 function createSingboxConfig(outbounds, validTags) {
+    let tunInbound;
+    if (tunEnabled) {
+        tunInbound = {
+            type: "tun",
+            tag: "tun-in",
+            interface_name: "tun0",
+            address: ["172.18.0.1/30", "fdfe:dcba:9876::1/126"],
+            mtu: 9000,
+            auto_route: true,
+            iproute2_table_index: 2022,
+            iproute2_rule_index: 9000,
+            auto_redirect: false,
+            auto_redirect_input_mark: "0x2023",
+            auto_redirect_output_mark: "0x2024",
+            strict_route: true,
+            route_address: ["0.0.0.0/1", "128.0.0.0/1", "::/1", "8000::/1"],
+            route_exclude_address: ["192.168.0.0/16", "fc00::/7"],
+            route_address_set: ["geoip-cloudflare"],
+            route_exclude_address_set: ["geoip-cn"],
+            endpoint_independent_nat: false,
+            udp_timeout: "5m",
+            stack: "system",
+            include_interface: ["lan0"],
+            exclude_interface: ["lan1"],
+            include_uid: [0],
+            include_uid_range: ["1000:99999"],
+            exclude_uid: [1000],
+            exclude_uid_range: ["1000:99999"],
+            include_android_user: [0, 10],
+            include_package: ["com.android.chrome"],
+            exclude_package: ["com.android.captiveportallogin"],
+            platform: {
+                http_proxy: {
+                    enabled: false,
+                    server: "127.0.0.1",
+                    server_port: 8080,
+                    bypass_domain: [],
+                    match_domain: []
+                }
+            }
+        };
+    } else {
+        tunInbound = {
+            address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
+            auto_route: true,
+            endpoint_independent_nat: false,
+            mtu: 9000,
+            platform: {
+                http_proxy: {
+                    enabled: true,
+                    server: "127.0.0.1",
+                    server_port: 2080
+                }
+            },
+            sniff: true,
+            stack: "system",
+            strict_route: false,
+            type: "tun"
+        };
+    }
+    
     return {
         dns: {
             final: "local-dns",
@@ -89,23 +150,7 @@ function createSingboxConfig(outbounds, validTags) {
             strategy: "prefer_ipv4"
         },
         inbounds: [
-            {
-                address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
-                auto_route: true,
-                endpoint_independent_nat: false,
-                mtu: 9000,
-                platform: {
-                    http_proxy: {
-                        enabled: true,
-                        server: "127.0.0.1",
-                        server_port: 2080
-                    }
-                },
-                sniff: true,
-                stack: "system",
-                strict_route: false,
-                type: "tun"
-            },
+            tunInbound,
             {
                 listen: "127.0.0.1",
                 listen_port: 2080,
