@@ -26,5 +26,10 @@ function copyToClipboard() {
 
 function toggleTun() {
     tunEnabled = !tunEnabled;
-    document.getElementById('toggleTunButton').textContent = tunEnabled ? "TUN: ON" : "TUN: OFF";
+    var btn = document.getElementById('toggleTunButton');
+    if(tunEnabled){
+         btn.classList.add("on");
+    } else {
+         btn.classList.remove("on");
+    }
 }
