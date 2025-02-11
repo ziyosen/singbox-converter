@@ -1,4 +1,5 @@
 let editor;
+let tunEnabled = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     editor = ace.edit("editor");
@@ -21,4 +22,9 @@ function copyToClipboard() {
     navigator.clipboard.writeText(content)
         .then(() => alert('Configuration copied to clipboard!'))
         .catch(err => console.error('Failed to copy:', err));
+}
+
+function toggleTun() {
+    tunEnabled = !tunEnabled;
+    document.getElementById('toggleTunButton').textContent = tunEnabled ? "TUN: ON" : "TUN: OFF";
 }
