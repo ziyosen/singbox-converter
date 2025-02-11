@@ -105,11 +105,3 @@ button:disabled {
 .footer a:hover {
     color: #45a049;
 }
-
-.toggle-button {
-    background-color: #666; /* Default grey color for OFF state */
-}
-
-.toggle-button.active {
-    background-color: #4CAF50; /* Green color for ON state */
-}
