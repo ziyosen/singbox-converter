@@ -1,37 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sing-box Config Converter</title>
-<link href="css/style.css" rel="stylesheet">
-<link href="css/terminal.css" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/converter.js"></script>
-<script src="js/editor.js"></script>
-<script src="js/main.js"></script>
-<script src="js/loading.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sing-box Config Converter</title>
+    <link href="css/style.css" rel="stylesheet">
+    <link href="css/terminal.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/converter.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/loading.js"></script>
 </head>
 <body>
-<div class="container">
-<h1>Sing-box Config Converter</h1>
-<p class="version">v0.8.0</p>
-<hr>
-<p>Enter your proxy configurations (one per line): (Supported Protocols: VMess, VLESS, Trojan, Hysteria2, Shadowsocks(ss), WireGuard(wg))</p>
-<textarea id="input" placeholder="Enter your proxy configurations here (one per line)..."></textarea>
-<button onclick="convertConfig()">Convert to Sing-box</button>
-<button id="clearButton" onclick="clearAll()" disabled>Clear</button>
-<div id="loading" class="loading-container" style="display:none;">
-<div class="terminal-loading"></div>
-</div>
-<div id="error" class="error"></div>
-<h3>Sing-box Configuration:</h3>
-<div id="editor"></div>
-<button onclick="copyToClipboard()">Copy to Clipboard</button>
-</div>
-<div class="footer">
-Designed by <a href="https://x.com/4n0nymou3" target="_blank">Anonymous</a>
-</div>
+    <div class="container">
+        <h1>Sing-box Config Converter</h1>
+        <p class="version">v0.7.0-beta</p>
+        <hr>
+        <p>Enter your proxy configurations (one per line): (Supported Protocols: VMess, VLESS, Trojan, Hysteria2, Shadowsocks(ss))</p>
+        <textarea id="input" placeholder="Enter your proxy configurations here (one per line)..."></textarea>
+        <button onclick="convertConfig()">Convert to Sing-box</button>
+        <button id="clearButton" onclick="clearAll()" disabled>Clear</button>
+        <div id="loading" class="loading-container" style="display:none;">
+            <div class="terminal-loading"></div>
+        </div>
+        <div id="error" class="error"></div>
+        <h3>Sing-box Configuration:</h3>
+        <div id="editor"></div>
+        <button onclick="copyToClipboard()">Copy to Clipboard</button>
+    </div>
+    <div class="footer">
+        Designed by <a href="https://x.com/4n0nymou3" target="_blank">Anonymous</a>
+    </div>
 </body>
 </html>
