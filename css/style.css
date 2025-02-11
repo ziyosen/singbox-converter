@@ -106,41 +106,10 @@ button:disabled {
     color: #45a049;
 }
 
-.toggle-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 10px 0;
+.toggle-button {
+    background-color: #666; /* Default grey color for OFF state */
 }
 
-#toggleTunButton {
-    width: 50px;
-    height: 30px;
-    border-radius: 15px;
-    background-color: #ccc;
-    border: none;
-    position: relative;
-    cursor: pointer;
-    outline: none;
-    transition: background-color 0.3s;
-}
-
-#toggleTunButton::before {
-    content: "";
-    position: absolute;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: white;
-    top: 2px;
-    left: 2px;
-    transition: left 0.3s;
-}
-
-#toggleTunButton.on {
-    background-color: #4CAF50;
-}
-
-#toggleTunButton.on::before {
-    left: 22px;
+.toggle-button.active {
+    background-color: #4CAF50; /* Green color for ON state */
 }
