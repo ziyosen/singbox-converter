@@ -15,21 +15,38 @@
 </head>
 <body>
     <div class="container">
+        <div class="terminal-header">
+            <span class="terminal-prompt">root@singbox-converter:~$</span>
+            <span class="terminal-cursor"></span>
+        </div>
+        
         <h1>Sing-box Config Converter</h1>
-        <p class="version">v0.7.0-beta</p>
-        <hr>
-        <p>Enter your proxy configurations (one per line): (Supported Protocols: VMess, VLESS, Trojan, Hysteria2, Shadowsocks(ss))</p>
+        <p class="version">v0.8.0-beta</p>
+        
+        <p>Enter your proxy configurations (one per line):</p>
+        <p>Supported Protocols: VMess, VLESS, Trojan, Hysteria2, Shadowsocks(ss)</p>
+        
         <textarea id="input" placeholder="Enter your proxy configurations here (one per line)..."></textarea>
-        <button onclick="convertConfig()">Convert to Sing-box</button>
-        <button id="clearButton" onclick="clearAll()" disabled>Clear</button>
+        
+        <div class="button-group">
+            <button onclick="convertConfig()">Convert to Sing-box</button>
+            <button id="clearButton" onclick="clearAll()" disabled>Clear</button>
+        </div>
+        
         <div id="loading" class="loading-container" style="display:none;">
             <div class="terminal-loading"></div>
         </div>
+        
         <div id="error" class="error"></div>
+        
         <h3>Sing-box Configuration:</h3>
         <div id="editor"></div>
-        <button onclick="copyToClipboard()">Copy to Clipboard</button>
+        
+        <div class="button-group">
+            <button onclick="copyToClipboard()">Copy to Clipboard</button>
+        </div>
     </div>
+    
     <div class="footer">
         Designed by <a href="https://x.com/4n0nymou3" target="_blank">Anonymous</a>
     </div>
