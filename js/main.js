@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.setReadOnly(true);
     editor.setOption("wrap", true);
     editor.setShowPrintMargin(false);
+    editor.session.setUseWorker(false);
 });
 
 function clearAll() {
