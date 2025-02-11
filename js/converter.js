@@ -3,7 +3,7 @@ function convertConfig() {
     const errorDiv = document.getElementById('error');
     
     if (!input) {
-        errorDiv.textContent = 'لطفا کانفیگ‌های پروکسی را وارد کنید';
+        errorDiv.textContent = 'Please enter proxy configurations';
         return;
     }
     
@@ -27,8 +27,6 @@ function convertConfig() {
                     converted = convertHysteria2(config);
                 } else if (config.startsWith('ss://')) {
                     converted = convertShadowsocks(config);
-                } else if (config.startsWith('wireguard://')) {
-                    converted = convertWireGuard(config);
                 } else {
                     continue;
                 }
@@ -40,7 +38,7 @@ function convertConfig() {
             }
             
             if (outbounds.length === 0) {
-                throw new Error('هیچ کانفیگ معتبری یافت نشد');
+                throw new Error('No valid configurations found');
             }
             
             const singboxConfig = createSingboxConfig(outbounds, validTags);
@@ -50,7 +48,7 @@ function convertConfig() {
             errorDiv.textContent = '';
             stopLoading();
         } catch (error) {
-            errorDiv.textContent = 'خطا: ' + error.message;
+            errorDiv.textContent = error.message;
             editor.setValue('');
             stopLoading();
         }
@@ -58,106 +56,92 @@ function convertConfig() {
 }
 
 function createSingboxConfig(outbounds, validTags) {
-    const settings = {
-        mtu: parseInt(document.getElementById('mtu').value) || 1500,
-        mainDns: document.getElementById('main-dns').value || 'local',
-        altDns: document.getElementById('alt-dns').value || 'tls://1.1.1.1',
-        ruleSetUrl: document.getElementById('ruleset-url').value
-    };
-
     return {
         dns: {
+            final: "local-dns",
+            rules: [
+                { clash_mode: "Global", server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
+                { server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
+                { clash_mode: "Direct", server: "direct-dns" }
+            ],
             servers: [
                 {
-                    tag: "remote-dns",
-                    address: settings.altDns,
+                    address: "tls://208.67.222.123",
                     address_resolver: "local-dns",
-                    strategy: "ipv4_only"
+                    detour: "proxy",
+                    tag: "proxy-dns"
                 },
                 {
-                    tag: "local-dns",
-                    address: settings.mainDns,
-                    detour: "direct"
+                    address: "local",
+                    detour: "direct",
+                    tag: "local-dns"
+                },
+                {
+                    address: "rcode://success",
+                    tag: "block"
+                },
+                {
+                    address: "local",
+                    detour: "direct",
+                    tag: "direct-dns"
                 }
             ],
-            rules: [
-                {
-                    domain_suffix: [".ir", ".co.ir", ".org.ir"],
-                    server: "local-dns"
-                },
-                {
-                    rule_set: ["geosite-category-ads-all"],
-                    server: "block"
-                }
-            ]
+            strategy: "prefer_ipv4"
         },
         inbounds: [
             {
-                type: "tun",
-                tag: "tun-in",
-                interface_name: "sing-box",
-                mtu: settings.mtu,
-                domain_strategy: "prefer_ipv4",
-                stack: "mixed",
+                address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
                 auto_route: true,
+                endpoint_independent_nat: false,
+                mtu: 9000,
+                platform: {
+                    http_proxy: {
+                        enabled: true,
+                        server: "127.0.0.1",
+                        server_port: 2080
+                    }
+                },
                 sniff: true,
-                sniff_override_destination: true,
-                route_address: ["0.0.0.0/0", "::/0"],
-                excluded_address: ["239.255.255.250/32"]
+                stack: "system",
+                strict_route: false,
+                type: "tun"
+            },
+            {
+                listen: "127.0.0.1",
+                listen_port: 2080,
+                sniff: true,
+                type: "mixed",
+                users: []
             }
         ],
         outbounds: [
             {
-                type: "selector",
                 tag: "proxy",
-                outbounds: ["auto"].concat(validTags),
-                default: "auto",
-                interrupt_exist_connections: false
+                type: "selector",
+                outbounds: ["auto"].concat(validTags).concat(["direct"])
             },
             {
-                type: "urltest",
                 tag: "auto",
+                type: "urltest",
                 outbounds: validTags,
-                url: "https://www.gstatic.com/generate_204",
+                url: "http://www.gstatic.com/generate_204",
                 interval: "10m",
                 tolerance: 50
             },
-            ...outbounds,
             {
-                type: "direct",
                 tag: "direct",
-                domain_strategy: "ipv4_only"
-            }
+                type: "direct"
+            },
+            ...outbounds
         ],
         route: {
-            rule_set: [
-                {
-                    tag: "geoip-ir",
-                    type: "remote",
-                    format: "binary",
-                    url: settings.ruleSetUrl,
-                    download_detour: "direct"
-                }
-            ],
-            rules: [
-                {
-                    rule_set: "geoip-ir",
-                    outbound: "direct"
-                },
-                {
-                    protocol: "dns",
-                    outbound: "dns-out"
-                }
-            ],
+            auto_detect_interface: true,
             final: "proxy",
-            auto_detect_interface: true
-        },
-        experimental: {
-            cache_file: {
-                enabled: true,
-                path: "cache.db",
-                cache_id: "sing-box-ir"
-            }
+            rules: [
+                { clash_mode: "Direct", outbound: "direct" },
+                { clash_mode: "Global", outbound: "proxy" },
+                { protocol: "dns", action: "hijack-dns" }
+            ]
         }
     };
 }
