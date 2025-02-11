@@ -2,6 +2,8 @@
     --terminal-bg: #1a1b26;
     --terminal-text: #a9b1d6;
     --terminal-green: #9ece6a;
+    --terminal-blue: #7aa2f7;
+    --terminal-purple: #bb9af7;
     --terminal-red: #f7768e;
     --terminal-yellow: #e0af68;
     --terminal-input-bg: #24283b;
@@ -35,31 +37,17 @@ body {
 
 .terminal-header {
     background-color: var(--terminal-input-bg);
-    padding: 10px;
+    padding: 15px;
     display: flex;
     align-items: center;
+    justify-content: center;
     border-bottom: 1px solid var(--terminal-border);
 }
 
-.terminal-buttons {
-    display: flex;
-    gap: 8px;
-    margin-right: 15px;
-}
-
-.terminal-button {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-}
-
-.close { background-color: var(--terminal-red); }
-.minimize { background-color: var(--terminal-yellow); }
-.maximize { background-color: var(--terminal-green); }
-
 .terminal-title {
     color: var(--terminal-text);
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: 600;
 }
 
 .terminal-content {
@@ -102,7 +90,8 @@ body {
 
 .terminal-textarea:focus {
     outline: none;
-    border-color: var(--terminal-green);
+    border-color: var(--terminal-purple);
+    box-shadow: 0 0 0 2px rgba(187, 154, 247, 0.2);
 }
 
 .terminal-actions {
@@ -111,25 +100,68 @@ body {
     margin: 15px 0;
 }
 
-button {
-    background-color: var(--terminal-input-bg);
+.glow-button {
+    background: linear-gradient(45deg, var(--terminal-input-bg), var(--terminal-border));
     color: var(--terminal-text);
     border: 1px solid var(--terminal-border);
-    padding: 8px 16px;
-    border-radius: 4px;
+    padding: 10px 20px;
+    border-radius: 6px;
     cursor: pointer;
     font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
-button:hover {
-    background-color: var(--terminal-border);
-    color: var(--terminal-green);
+.glow-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255,255,255,0.1),
+        transparent
+    );
+    transition: 0.5s;
 }
 
-button:disabled {
+.glow-button:hover::before {
+    left: 100%;
+}
+
+.glow-button.primary {
+    background: linear-gradient(45deg, var(--terminal-purple), var(--terminal-blue));
+    border-color: var(--terminal-purple);
+}
+
+.glow-button.primary:hover {
+    background: linear-gradient(45deg, var(--terminal-blue), var(--terminal-purple));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(122, 162, 247, 0.3);
+}
+
+.glow-button.secondary {
+    background: linear-gradient(45deg, var(--terminal-input-bg), var(--terminal-border));
+}
+
+.glow-button.secondary:hover {
+    background: linear-gradient(45deg, var(--terminal-border), var(--terminal-input-bg));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(65, 72, 104, 0.3);
+}
+
+.glow-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
 .terminal-editor {
@@ -169,5 +201,13 @@ button:disabled {
     
     .terminal-textarea {
         min-height: 150px;
+    }
+    
+    .terminal-actions {
+        flex-direction: column;
+    }
+    
+    .glow-button {
+        width: 100%;
     }
 }
