@@ -1,49 +1,53 @@
 body {
     font-family: 'IBM Plex Mono', 'Fira Code', 'Source Code Pro', monospace;
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 0 20px;
+    margin: 0;
+    padding: 0;
     background-color: #1a1a1a;
     color: #ffffff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .container {
-    background-color: #2d2d2d;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    max-width: 800px;
-    margin: 20px auto;
+    flex: 1;
+    padding: 2rem;
+    background-color: #1a1a1a;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .version {
     color: #4CAF50;
-    text-align: center;
-    margin-top: -10px;
-    margin-bottom: 15px;
+    text-align: left;
+    margin-bottom: 1rem;
     font-size: 0.9em;
+    opacity: 0.8;
 }
 
-hr {
-    border: 0;
-    height: 1px;
-    background-color: #444;
-    margin: 15px 0;
+h1 {
+    color: #4CAF50;
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #4CAF50;
 }
 
 textarea {
     width: 100%;
     box-sizing: border-box;
-    padding: 12px;
-    margin: 8px 0;
+    padding: 1rem;
+    margin: 1rem 0;
     border: 1px solid #444;
     border-radius: 4px;
     resize: vertical;
-    background-color: #363636;
-    color: #ffffff;
-    min-height: 150px;
+    background-color: #2d2d2d;
+    color: #d4d4d4;
+    min-height: 200px;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 14px;
+    line-height: 1.6;
 }
 
 textarea:focus {
@@ -52,24 +56,33 @@ textarea:focus {
     box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
 }
 
+.button-group {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
 button {
-    background-color: #4CAF50;
-    color: white;
-    padding: 12px 24px;
-    border: none;
+    background-color: #2d2d2d;
+    color: #4CAF50;
+    padding: 0.8rem 1.5rem;
+    border: 1px solid #4CAF50;
     border-radius: 4px;
     cursor: pointer;
-    margin: 5px;
-    transition: background-color 0.3s;
     font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    transition: all 0.3s ease;
 }
 
 button:hover {
-    background-color: #45a049;
+    background-color: #4CAF50;
+    color: #ffffff;
 }
 
 button:disabled {
-    background-color: #cccccc;
+    background-color: #2d2d2d;
+    border-color: #666;
+    color: #666;
     cursor: not-allowed;
 }
 
@@ -77,23 +90,25 @@ button:disabled {
     height: 400px;
     border: 1px solid #444;
     border-radius: 4px;
-    margin: 10px 0;
-    background-color: #363636;
-    font-family: 'IBM Plex Mono', monospace;
+    margin: 1rem 0;
+    background-color: #2d2d2d;
 }
 
 .error {
     color: #ff6b6b;
-    margin: 10px 0;
-    font-family: 'IBM Plex Mono', monospace;
+    margin: 1rem 0;
+    padding: 1rem;
+    background-color: rgba(255, 107, 107, 0.1);
+    border-radius: 4px;
+    border-left: 4px solid #ff6b6b;
 }
 
 .footer {
     text-align: center;
-    margin-top: 20px;
-    padding: 20px;
+    padding: 2rem;
     color: #888;
-    font-family: 'IBM Plex Mono', monospace;
+    background-color: #1a1a1a;
+    border-top: 1px solid #2d2d2d;
 }
 
 .footer a {
@@ -104,4 +119,18 @@ button:disabled {
 
 .footer a:hover {
     color: #45a049;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+    
+    .button-group {
+        flex-direction: column;
+    }
+    
+    button {
+        width: 100%;
+    }
 }
