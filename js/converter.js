@@ -1,20 +1,21 @@
 function convertConfig() {
     const input = document.getElementById('input').value.trim();
     const errorDiv = document.getElementById('error');
-    
+    const tunModeEnabled = document.getElementById('tunModeButton').classList.contains('active');
+
     if (!input) {
         errorDiv.textContent = 'Please enter proxy configurations';
         return;
     }
-    
+
     startLoading();
-    
+
     setTimeout(() => {
         try {
             const configs = input.split('\n').filter(line => line.trim() && !line.trim().startsWith('//'));
             const outbounds = [];
             const validTags = [];
-            
+
             for (const config of configs) {
                 let converted;
                 if (config.startsWith('vmess://')) {
@@ -30,94 +31,35 @@ function convertConfig() {
                 } else {
                     continue;
                 }
-                
+
                 if (converted) {
                     outbounds.push(converted);
                     validTags.push(converted.tag);
                 }
             }
-            
+
             if (outbounds.length === 0) {
                 throw new Error('No valid configurations found');
             }
-            
-            const singboxConfig = createSingboxConfig(outbounds, validTags);
+
+            const singboxConfig = createSingboxConfig(outbounds, validTags, tunModeEnabled);
             const jsonString = JSON.stringify(singboxConfig, null, 2);
             editor.setValue(jsonString);
             editor.clearSelection();
             errorDiv.textContent = '';
             stopLoading();
+
         } catch (error) {
             errorDiv.textContent = error.message;
             editor.setValue('');
             stopLoading();
         }
     }, 2000);
+
 }
 
-function createSingboxConfig(outbounds, validTags) {
-    let tunInbound;
-    if (tunEnabled) {
-        tunInbound = {
-            type: "tun",
-            tag: "tun-in",
-            interface_name: "tun0",
-            address: ["172.18.0.1/30", "fdfe:dcba:9876::1/126"],
-            mtu: 9000,
-            auto_route: true,
-            iproute2_table_index: 2022,
-            iproute2_rule_index: 9000,
-            auto_redirect: false,
-            auto_redirect_input_mark: "0x2023",
-            auto_redirect_output_mark: "0x2024",
-            strict_route: true,
-            route_address: ["0.0.0.0/1", "128.0.0.0/1", "::/1", "8000::/1"],
-            route_exclude_address: ["192.168.0.0/16", "fc00::/7"],
-            route_address_set: ["geoip-cloudflare"],
-            route_exclude_address_set: ["geoip-cn"],
-            endpoint_independent_nat: false,
-            udp_timeout: "5m",
-            stack: "system",
-            include_interface: ["lan0"],
-            exclude_interface: ["lan1"],
-            include_uid: [0],
-            include_uid_range: ["1000:99999"],
-            exclude_uid: [1000],
-            exclude_uid_range: ["1000:99999"],
-            include_android_user: [0, 10],
-            include_package: ["com.android.chrome"],
-            exclude_package: ["com.android.captiveportallogin"],
-            platform: {
-                http_proxy: {
-                    enabled: false,
-                    server: "127.0.0.1",
-                    server_port: 8080,
-                    bypass_domain: [],
-                    match_domain: []
-                }
-            }
-        };
-    } else {
-        tunInbound = {
-            address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
-            auto_route: true,
-            endpoint_independent_nat: false,
-            mtu: 9000,
-            platform: {
-                http_proxy: {
-                    enabled: true,
-                    server: "127.0.0.1",
-                    server_port: 2080
-                }
-            },
-            sniff: true,
-            stack: "system",
-            strict_route: false,
-            type: "tun"
-        };
-    }
-    
-    return {
+function createSingboxConfig(outbounds, validTags, tunModeEnabled) {
+    const config = {
         dns: {
             final: "local-dns",
             rules: [
@@ -150,7 +92,7 @@ function createSingboxConfig(outbounds, validTags) {
             strategy: "prefer_ipv4"
         },
         inbounds: [
-            tunInbound,
+
             {
                 listen: "127.0.0.1",
                 listen_port: 2080,
@@ -189,4 +131,160 @@ function createSingboxConfig(outbounds, validTags) {
             ]
         }
     };
+
+    if (tunModeEnabled) {
+        config.inbounds.unshift({
+            address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
+            auto_route: true,
+            endpoint_independent_nat: false,
+            mtu: 9000,
+            platform: {
+                http_proxy: {
+                    enabled: true,
+                    server: "127.0.0.1",
+                    server_port: 2080
+                }
+            },
+            sniff: true,
+            stack: "system",
+            strict_route: false,
+            type: "tun"
+        });
+    }
+
+
+    return config;
+}
+
+function convertVmess(input) {
+    try {
+        const data = JSON.parse(atob(input.replace('vmess://', '')));
+        if (!data.add || !data.port || !data.id) return null;
+
+        const transport = {};
+        if (data.net === 'ws' || data.net === 'h2') {
+            if (data.path) transport.path = data.path;
+            if (data.host) transport.headers = { Host: data.host };
+            transport.type = data.net;
+        }
+        return {
+            type: "vmess",
+            tag: `vmess-${generateUUID().slice(0, 8)}`,
+            server: data.add,
+            server_port: parseInt(data.port),
+            uuid: data.id,
+            security: data.scy || "auto",
+            alter_id: parseInt(data.aid || 0),
+            transport: transport,
+            tls: { enabled: data.tls === 'tls', insecure: true, server_name: data.sni || data.add }
+        };
+    } catch (error) {
+        throw new Error('Invalid VMess configuration');
+    }
+
+}
+
+function convertVless(input) {
+    try {
+        const url = new URL(input);
+        if (url.protocol.toLowerCase() !== 'vless:' || !url.hostname) return null;
+
+        const address = url.hostname;
+        const port = url.port || 443;
+        const params = new URLSearchParams(url.search);
+        const transport = {};
+        if (params.get('type') === 'ws') {
+            if (params.get('path')) transport.path = params.get('path');
+            if (params.get('host')) transport.headers = { Host: params.get('host') };
+            transport.type = 'ws';
+        }
+        return {
+            type: "vless",
+            tag: `vless-${generateUUID().slice(0, 8)}`,
+            server: address,
+            server_port: parseInt(port),
+            uuid: url.username,
+            flow: params.get('flow') || '',
+            transport: transport,
+            tls: { enabled: true, server_name: params.get('sni') || address, insecure: true }
+        };
+    } catch (error) {
+        throw new Error('Invalid VLESS configuration');
+    }
+
+}
+
+function convertTrojan(input) {
+    try {
+        const url = new URL(input);
+        if (url.protocol.toLowerCase() !== 'trojan:' || !url.hostname) return null;
+
+        const params = new URLSearchParams(url.search);
+        const transport = {};
+        const type = params.get('type');
+        if (type && type !== 'tcp' && params.get('path')) {
+            transport.path = params.get('path');
+            transport.type = type;
+        }
+        return {
+            type: "trojan",
+            tag: `trojan-${generateUUID().slice(0, 8)}`,
+            server: url.hostname,
+            server_port: parseInt(url.port || 443),
+            password: url.username,
+            transport: transport,
+            tls: {
+                enabled: true,
+                server_name: params.get('sni') || url.hostname,
+                insecure: true,
+                alpn: (params.get('alpn') || '').split(',').filter(Boolean)
+            }
+        };
+    } catch (error) {
+        throw new Error('Invalid Trojan configuration');
+    }
+
+}
+
+function convertHysteria2(input) {
+    try {
+        const url = new URL(input);
+        if (!['hysteria2:', 'hy2:'].includes(url.protocol.toLowerCase()) || !url.hostname || !url.port) return null;
+
+        const params = new URLSearchParams(url.search);
+        return {
+            type: "hysteria2",
+            tag: `hysteria2-${generateUUID().slice(0, 8)}`,
+            server: url.hostname,
+            server_port: parseInt(url.port),
+            password: url.username || params.get('password') || '',
+            tls: { enabled: true, server_name: params.get('sni') || url.hostname, insecure: true }
+        };
+    } catch (error) {
+        throw new Error('Invalid Hysteria2 configuration');
+    }
+
+}
+
+function convertShadowsocks(input) {
+    try {
+        const ss = input.replace('ss://', '');
+        const [serverPart, _] = ss.split('#');
+        const [methodAndPass, serverAndPort] = serverPart.split('@');
+        const [method, password] = atob(methodAndPass).split(':');
+        const [server, port] = serverAndPort.split(':');
+
+        if (!server || !port) return null;
+        return {
+            type: "shadowsocks",
+            tag: `ss-${generateUUID().slice(0, 8)}`,
+            server: server,
+            server_port: parseInt(port),
+            method: method,
+            password: password
+        };
+    } catch (error) {
+        throw new Error('Invalid Shadowsocks configuration');
+    }
+
 }
