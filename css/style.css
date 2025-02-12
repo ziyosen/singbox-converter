@@ -139,6 +139,7 @@ body {
 .glow-button.primary {
     background: linear-gradient(45deg, var(--terminal-purple), var(--terminal-blue));
     border-color: var(--terminal-purple);
+    color: #ffffff;
 }
 
 .glow-button.primary:hover {
