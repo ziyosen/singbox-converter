@@ -1,4 +1,77 @@
-function convertConfig() {
+const SUPPORTED_PROTOCOLS = ['vmess://', 'vless://', 'trojan://', 'hysteria2://', 'hy2://', 'ss://'];
+
+function isLink(str) {
+    return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('ssconf://');
+}
+
+function isBase64(str) {
+    if (!str || str.length % 4 !== 0) return false;
+    const base64Regex = /^[A-Za-z0-9+/=]+$/;
+    return base64Regex.test(str);
+}
+
+async function fetchContent(link) {
+    if (link.startsWith('ssconf://')) {
+        link = link.replace('ssconf://', 'https://');
+    }
+    try {
+        const response = await fetch(link);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        let text = await response.text();
+        text = text.trim();
+        if (isBase64(text)) {
+            try {
+                text = atob(text);
+            } catch (e) {
+                console.error(`Failed to decode Base64 from ${link}:`, e);
+            }
+        }
+        return text;
+    } catch (error) {
+        console.error(`Failed to fetch ${link}:`, error);
+        return null;
+    }
+}
+
+async function extractStandardConfigs(text) {
+    const configs = [];
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+    
+    for (const line of lines) {
+        if (isLink(line)) {
+            const content = await fetchContent(line);
+            if (content) {
+                const subConfigs = await extractStandardConfigs(content);
+                configs.push(...subConfigs);
+            }
+        } else {
+            let isStandardConfig = false;
+            for (const protocol of SUPPORTED_PROTOCOLS) {
+                if (line.startsWith(protocol)) {
+                    configs.push(line);
+                    isStandardConfig = true;
+                    break;
+                }
+            }
+            if (!isStandardConfig && isBase64(line)) {
+                try {
+                    const decoded = atob(line);
+                    if (SUPPORTED_PROTOCOLS.some(protocol => decoded.includes(protocol))) {
+                        const subConfigs = await extractStandardConfigs(decoded);
+                        configs.push(...subConfigs);
+                    }
+                } catch (e) {
+                }
+            }
+        }
+    }
+    
+    return configs;
+}
+
+async function convertConfig() {
     const input = document.getElementById('input').value.trim();
     const errorDiv = document.getElementById('error');
     
@@ -9,50 +82,48 @@ function convertConfig() {
     
     startLoading();
     
-    setTimeout(() => {
-        try {
-            const configs = input.split('\n').filter(line => line.trim() && !line.trim().startsWith('//'));
-            const outbounds = [];
-            const validTags = [];
-            
-            for (const config of configs) {
-                let converted;
-                if (config.startsWith('vmess://')) {
-                    converted = convertVmess(config);
-                } else if (config.startsWith('vless://')) {
-                    converted = convertVless(config);
-                } else if (config.startsWith('trojan://')) {
-                    converted = convertTrojan(config);
-                } else if (config.startsWith('hysteria2://') || config.startsWith('hy2://')) {
-                    converted = convertHysteria2(config);
-                } else if (config.startsWith('ss://')) {
-                    converted = convertShadowsocks(config);
-                } else {
-                    continue;
-                }
-                
-                if (converted) {
-                    outbounds.push(converted);
-                    validTags.push(converted.tag);
-                }
+    try {
+        const configs = await extractStandardConfigs(input);
+        const outbounds = [];
+        const validTags = [];
+        
+        for (const config of configs) {
+            let converted;
+            if (config.startsWith('vmess://')) {
+                converted = convertVmess(config);
+            } else if (config.startsWith('vless://')) {
+                converted = convertVless(config);
+            } else if (config.startsWith('trojan://')) {
+                converted = convertTrojan(config);
+            } else if (config.startsWith('hysteria2://') || config.startsWith('hy2://')) {
+                converted = convertHysteria2(config);
+            } else if (config.startsWith('ss://')) {
+                converted = convertShadowsocks(config);
+            } else {
+                continue;
             }
             
-            if (outbounds.length === 0) {
-                throw new Error('No valid configurations found');
+            if (converted) {
+                outbounds.push(converted);
+                validTags.push(converted.tag);
             }
-            
-            const singboxConfig = createSingboxConfig(outbounds, validTags);
-            const jsonString = JSON.stringify(singboxConfig, null, 2);
-            editor.setValue(jsonString);
-            editor.clearSelection();
-            errorDiv.textContent = '';
-            stopLoading();
-        } catch (error) {
-            errorDiv.textContent = error.message;
-            editor.setValue('');
-            stopLoading();
         }
-    }, 2000);
+        
+        if (outbounds.length === 0) {
+            throw new Error('No valid configurations found');
+        }
+        
+        const singboxConfig = createSingboxConfig(outbounds, validTags);
+        const jsonString = JSON.stringify(singboxConfig, null, 2);
+        editor.setValue(jsonString);
+        editor.clearSelection();
+        errorDiv.textContent = '';
+    } catch (error) {
+        errorDiv.textContent = error.message;
+        editor.setValue('');
+    } finally {
+        stopLoading();
+    }
 }
 
 function createSingboxConfig(outbounds, validTags) {
