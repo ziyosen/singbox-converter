@@ -118,9 +118,11 @@ async function convertConfig() {
         editor.setValue(jsonString);
         editor.clearSelection();
         errorDiv.textContent = '';
+        document.getElementById('downloadButton').disabled = false;
     } catch (error) {
         errorDiv.textContent = error.message;
         editor.setValue('');
+        document.getElementById('downloadButton').disabled = true;
     } finally {
         stopLoading();
     }
