@@ -66,15 +66,39 @@ async function extractStandardConfigs(input) {
             const decoded = atob(input);
             const subConfigs = extractConfigsFromText(decoded);
             configs.push(...subConfigs);
+            const lines = decoded.split('\n').map(line => line.trim()).filter(line => line);
+            for (const line of lines) {
+                if (isBase64(line)) {
+                    try {
+                        const decodedLine = atob(line);
+                        const subConfigsLine = extractConfigsFromText(decodedLine);
+                        configs.push(...subConfigsLine);
+                    } catch (e) {
+                        console.error('Failed to decode nested Base64:', e);
+                    }
+                }
+            }
         } catch (e) {
             console.error('Failed to decode Base64:', e);
         }
     } else {
         const subConfigs = extractConfigsFromText(input);
         configs.push(...subConfigs);
+        const lines = input.split('\n').map(line => line.trim()).filter(line => line);
+        for (const line of lines) {
+            if (isBase64(line)) {
+                try {
+                    const decodedLine = atob(line);
+                    const subConfigsLine = extractConfigsFromText(decodedLine);
+                    configs.push(...subConfigsLine);
+                } catch (e) {
+                    console.error('Failed to decode nested Base64:', e);
+                }
+            }
+        }
     }
 
-    return configs;
+    return [...new Set(configs)];
 }
 
 async function convertConfig() {
@@ -95,17 +119,20 @@ async function convertConfig() {
         
         for (const config of configs) {
             let converted;
-            if (config.startsWith('vmess://')) {
-                converted = convertVmess(config);
-            } else if (config.startsWith('vless://')) {
-                converted = convertVless(config);
-            } else if (config.startsWith('trojan://')) {
-                converted = convertTrojan(config);
-            } else if (config.startsWith('hysteria2://') || config.startsWith('hy2://')) {
-                converted = convertHysteria2(config);
-            } else if (config.startsWith('ss://')) {
-                converted = convertShadowsocks(config);
-            } else {
+            try {
+                if (config.startsWith('vmess://')) {
+                    converted = convertVmess(config);
+                } else if (config.startsWith('vless://')) {
+                    converted = convertVless(config);
+                } else if (config.startsWith('trojan://')) {
+                    converted = convertTrojan(config);
+                } else if (config.startsWith('hysteria2://') || config.startsWith('hy2://')) {
+                    converted = convertHysteria2(config);
+                } else if (config.startsWith('ss://')) {
+                    converted = convertShadowsocks(config);
+                }
+            } catch (e) {
+                console.error(`Failed to convert config: ${config}`, e);
                 continue;
             }
             
