@@ -35,40 +35,30 @@ async function fetchContent(link) {
     }
 }
 
-async function extractStandardConfigs(text) {
+function extractConfigsFromText(text) {
     const configs = [];
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-    
-    for (const line of lines) {
-        if (isLink(line)) {
-            const content = await fetchContent(line);
-            if (content) {
-                const subConfigs = await extractStandardConfigs(content);
-                configs.push(...subConfigs);
-            }
-        } else {
-            let isStandardConfig = false;
-            for (const protocol of SUPPORTED_PROTOCOLS) {
-                if (line.startsWith(protocol)) {
-                    configs.push(line);
-                    isStandardConfig = true;
-                    break;
-                }
-            }
-            if (!isStandardConfig && isBase64(line)) {
-                try {
-                    const decoded = atob(line);
-                    if (SUPPORTED_PROTOCOLS.some(protocol => decoded.includes(protocol))) {
-                        const subConfigs = await extractStandardConfigs(decoded);
-                        configs.push(...subConfigs);
-                    }
-                } catch (e) {
-                }
-            }
+    const protocolRegex = new RegExp(`(${SUPPORTED_PROTOCOLS.join('|')})[^\\s]+`, 'g');
+    let match;
+    while ((match = protocolRegex.exec(text)) !== null) {
+        configs.push(match[0]);
+    }
+    return configs;
+}
+
+async function processInput(input) {
+    let text = input.trim();
+    if (isLink(input)) {
+        text = await fetchContent(input);
+        if (!text) return [];
+    } else if (isBase64(input)) {
+        try {
+            text = atob(input);
+        } catch (e) {
+            console.error('Failed to decode Base64:', e);
+            return [];
         }
     }
-    
-    return configs;
+    return extractConfigsFromText(text);
 }
 
 async function convertConfig() {
@@ -83,7 +73,7 @@ async function convertConfig() {
     startLoading();
     
     try {
-        const configs = await extractStandardConfigs(input);
+        const configs = await processInput(input);
         const outbounds = [];
         const validTags = [];
         
