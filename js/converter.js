@@ -39,13 +39,13 @@ function extractConfigsFromText(text) {
     const configs = [];
     const protocolPatterns = SUPPORTED_PROTOCOLS.map(protocol => ({
         protocol,
-        regex: new RegExp(`(${protocol}[^\\s]+)`, 'g')
+        regex: new RegExp(`(${protocol}[^\\s#]+(?:#[^\\s]+)?)`, 'g')
     }));
 
     for (const { regex } of protocolPatterns) {
-        const matches = text.match(regex);
-        if (matches) {
-            configs.push(...matches);
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            configs.push(match[0]);
         }
     }
 
@@ -68,18 +68,6 @@ async function extractStandardConfigs(input) {
                 const decoded = atob(line);
                 const subConfigs = extractConfigsFromText(decoded);
                 configs.push(...subConfigs);
-                const nestedLines = decoded.split('\n').map(line => line.trim()).filter(line => line);
-                for (const nestedLine of nestedLines) {
-                    if (isBase64(nestedLine)) {
-                        try {
-                            const nestedDecoded = atob(nestedLine);
-                            const nestedConfigs = extractConfigsFromText(nestedDecoded);
-                            configs.push(...nestedConfigs);
-                        } catch (e) {
-                            console.error('Failed to decode nested Base64:', e);
-                        }
-                    }
-                }
             } catch (e) {
                 console.error('Failed to decode Base64:', e);
             }
