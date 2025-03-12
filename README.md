@@ -56,7 +56,7 @@ git clone https://github.com/4n0nymou3/proxy-to-singbox-converter.git
 ## 🚀 How to Use
 
 1. Navigate to the web application
-2. Paste your proxy configs, links, or Base64-encoded data (one per line)
+2. Paste your proxy configs, links, or Base64-encoded data
 3. Click "Convert to Sing-box"
 4. Copy the generated configuration
 
