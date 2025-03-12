@@ -37,28 +37,44 @@ async function fetchContent(link) {
 
 function extractConfigsFromText(text) {
     const configs = [];
-    const protocolRegex = new RegExp(`(${SUPPORTED_PROTOCOLS.join('|')})[^\\s]+`, 'g');
-    let match;
-    while ((match = protocolRegex.exec(text)) !== null) {
-        configs.push(match[0]);
+    const protocolPatterns = SUPPORTED_PROTOCOLS.map(protocol => ({
+        protocol,
+        regex: new RegExp(`(${protocol}[^\\s]+)`, 'g')
+    }));
+
+    for (const { regex } of protocolPatterns) {
+        const matches = text.match(regex);
+        if (matches) {
+            configs.push(...matches);
+        }
     }
+
     return configs;
 }
 
-async function processInput(input) {
-    let text = input.trim();
+async function extractStandardConfigs(input) {
+    const configs = [];
+
     if (isLink(input)) {
-        text = await fetchContent(input);
-        if (!text) return [];
+        const content = await fetchContent(input);
+        if (content) {
+            const subConfigs = extractConfigsFromText(content);
+            configs.push(...subConfigs);
+        }
     } else if (isBase64(input)) {
         try {
-            text = atob(input);
+            const decoded = atob(input);
+            const subConfigs = extractConfigsFromText(decoded);
+            configs.push(...subConfigs);
         } catch (e) {
             console.error('Failed to decode Base64:', e);
-            return [];
         }
+    } else {
+        const subConfigs = extractConfigsFromText(input);
+        configs.push(...subConfigs);
     }
-    return extractConfigsFromText(text);
+
+    return configs;
 }
 
 async function convertConfig() {
@@ -73,7 +89,7 @@ async function convertConfig() {
     startLoading();
     
     try {
-        const configs = await processInput(input);
+        const configs = await extractStandardConfigs(input);
         const outbounds = [];
         const validTags = [];
         
