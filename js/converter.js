@@ -68,6 +68,18 @@ async function extractStandardConfigs(input) {
                 const decoded = atob(line);
                 const subConfigs = extractConfigsFromText(decoded);
                 configs.push(...subConfigs);
+                const nestedLines = decoded.split('\n').map(line => line.trim()).filter(line => line);
+                for (const nestedLine of nestedLines) {
+                    if (isBase64(nestedLine)) {
+                        try {
+                            const nestedDecoded = atob(nestedLine);
+                            const nestedConfigs = extractConfigsFromText(nestedDecoded);
+                            configs.push(...nestedConfigs);
+                        } catch (e) {
+                            console.error('Failed to decode nested Base64:', e);
+                        }
+                    }
+                }
             } catch (e) {
                 console.error('Failed to decode Base64:', e);
             }
@@ -76,6 +88,10 @@ async function extractStandardConfigs(input) {
             configs.push(...subConfigs);
         }
     }
+
+    const allText = input.replace(/\n/g, ' ');
+    const subConfigsFromText = extractConfigsFromText(allText);
+    configs.push(...subConfigsFromText);
 
     return [...new Set(configs)];
 }
