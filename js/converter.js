@@ -35,6 +35,28 @@ async function fetchContent(link) {
     }
 }
 
+function decodeBase64IfNeeded(str) {
+    if (isBase64(str)) {
+        try {
+            return atob(str);
+        } catch (e) {
+            console.error(`Failed to decode Base64: ${str}`, e);
+        }
+    }
+    return str;
+}
+
+function processConfig(config) {
+    for (const protocol of SUPPORTED_PROTOCOLS) {
+        if (config.startsWith(protocol)) {
+            const content = config.slice(protocol.length);
+            const decodedContent = decodeBase64IfNeeded(content.split('#')[0]);
+            return `${protocol}${decodedContent}${content.includes('#') ? '#' + content.split('#')[1] : ''}`;
+        }
+    }
+    return config;
+}
+
 function extractConfigsFromText(text) {
     const configs = [];
     const protocolPatterns = SUPPORTED_PROTOCOLS.map(protocol => ({
@@ -45,7 +67,15 @@ function extractConfigsFromText(text) {
     for (const { regex } of protocolPatterns) {
         const matches = text.match(regex);
         if (matches) {
-            configs.push(...matches);
+            matches.forEach(match => {
+                const processedMatch = processConfig(match);
+                if (SUPPORTED_PROTOCOLS.some(protocol => processedMatch.startsWith(protocol))) {
+                    configs.push(processedMatch);
+                } else if (isBase64(processedMatch)) {
+                    const nestedConfigs = extractConfigsFromText(decodeBase64IfNeeded(processedMatch));
+                    configs.push(...nestedConfigs);
+                }
+            });
         }
     }
 
@@ -68,18 +98,6 @@ async function extractStandardConfigs(input) {
                 const decoded = atob(line);
                 const subConfigs = extractConfigsFromText(decoded);
                 configs.push(...subConfigs);
-                const nestedLines = decoded.split('\n').map(line => line.trim()).filter(line => line);
-                for (const nestedLine of nestedLines) {
-                    if (isBase64(nestedLine)) {
-                        try {
-                            const nestedDecoded = atob(nestedLine);
-                            const nestedConfigs = extractConfigsFromText(nestedDecoded);
-                            configs.push(...nestedConfigs);
-                        } catch (e) {
-                            console.error('Failed to decode nested Base64:', e);
-                        }
-                    }
-                }
             } catch (e) {
                 console.error('Failed to decode Base64:', e);
             }
