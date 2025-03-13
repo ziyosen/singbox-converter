@@ -39,13 +39,13 @@ function extractConfigsFromText(text) {
     const configs = [];
     const protocolPatterns = SUPPORTED_PROTOCOLS.map(protocol => ({
         protocol,
-        regex: new RegExp(`(${protocol}[^\\s#]+(?:#[^\\s]+)?)`, 'g')
+        regex: new RegExp(`(${protocol}[^\\s]+)`, 'g')
     }));
 
     for (const { regex } of protocolPatterns) {
-        let match;
-        while ((match = regex.exec(text)) !== null) {
-            configs.push(match[0]);
+        const matches = text.match(regex);
+        if (matches) {
+            configs.push(...matches);
         }
     }
 
@@ -76,10 +76,6 @@ async function extractStandardConfigs(input) {
             configs.push(...subConfigs);
         }
     }
-
-    const allText = input.replace(/\n/g, ' ');
-    const subConfigsFromText = extractConfigsFromText(allText);
-    configs.push(...subConfigsFromText);
 
     return [...new Set(configs)];
 }
