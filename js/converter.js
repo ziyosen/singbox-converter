@@ -52,6 +52,113 @@ function extractConfigsFromText(text) {
     return configs;
 }
 
+function decodeNestedBase64(str) {
+    let result = str;
+    while (isBase64(result)) {
+        try {
+            result = atob(result);
+        } catch (e) {
+            break;
+        }
+    }
+    return result;
+}
+
+function parseSsConfig(config) {
+    try {
+        const base64Part = config.replace('ss://', '').split('#')[0];
+        const decoded = atob(base64Part);
+        const [methodPassword, hostPort] = decoded.split('@');
+        const [method, password] = methodPassword.split(':');
+        const [host, port] = hostPort.split(':');
+        return {
+            type: 'shadowsocks',
+            tag: `ss-${host}-${port}`,
+            server: host,
+            server_port: parseInt(port),
+            method: method,
+            password: password
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+function parseVmessConfig(config) {
+    try {
+        const base64Part = config.replace('vmess://', '');
+        const decoded = decodeNestedBase64(base64Part);
+        const jsonConfig = JSON.parse(decoded);
+        return {
+            type: 'vmess',
+            tag: `vmess-${jsonConfig.add}-${jsonConfig.port}`,
+            server: jsonConfig.add,
+            server_port: parseInt(jsonConfig.port),
+            uuid: jsonConfig.id,
+            security: jsonConfig.scy || 'auto',
+            network: jsonConfig.net || 'tcp'
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+function parseVlessConfig(config) {
+    try {
+        const base64Part = config.replace('vless://', '').split('#')[0];
+        const [userHost] = atob(base64Part).split('@');
+        const [uuid, hostPort] = userHost.split('@');
+        const [host, port] = hostPort.split(':');
+        return {
+            type: 'vless',
+            tag: `vless-${host}-${port}`,
+            server: host,
+            server_port: parseInt(port),
+            uuid: uuid,
+            security: 'none'
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+function parseTrojanConfig(config) {
+    try {
+        const base64Part = config.replace('trojan://', '').split('#')[0];
+        const [passwordHost] = atob(base64Part).split('@');
+        const [password, hostPort] = passwordHost.split('@');
+        const [host, port] = hostPort.split(':');
+        return {
+            type: 'trojan',
+            tag: `trojan-${host}-${port}`,
+            server: host,
+            server_port: parseInt(port),
+            password: password
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+function parseHysteria2Config(config) {
+    try {
+        const base64Part = config.replace('hysteria2://', '').split('#')[0];
+        const decoded = atob(base64Part);
+        const [passwordHost] = decoded.split('@');
+        const [password, hostPort] = passwordHost.split('@');
+        const [host, port] = hostPort.split(':');
+        return {
+            type: 'hysteria2',
+            tag: `hysteria2-${host}-${port}`,
+            server: host,
+            server_port: parseInt(port),
+            password: password
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
 async function extractStandardConfigs(input) {
     const configs = [];
     const lines = input.split('\n').map(line => line.trim()).filter(line => line);
@@ -65,14 +172,14 @@ async function extractStandardConfigs(input) {
             }
         } else if (isBase64(line)) {
             try {
-                const decoded = atob(line);
+                const decoded = decodeNestedBase64(line);
                 const subConfigs = extractConfigsFromText(decoded);
                 configs.push(...subConfigs);
                 const nestedLines = decoded.split('\n').map(line => line.trim()).filter(line => line);
                 for (const nestedLine of nestedLines) {
                     if (isBase64(nestedLine)) {
                         try {
-                            const nestedDecoded = atob(nestedLine);
+                            const nestedDecoded = decodeNestedBase64(nestedLine);
                             const nestedConfigs = extractConfigsFromText(nestedDecoded);
                             configs.push(...nestedConfigs);
                         } catch (e) {
@@ -116,15 +223,15 @@ async function convertConfig() {
             let converted;
             try {
                 if (config.startsWith('vmess://')) {
-                    converted = convertVmess(config);
+                    converted = parseVmessConfig(config);
                 } else if (config.startsWith('vless://')) {
-                    converted = convertVless(config);
+                    converted = parseVlessConfig(config);
                 } else if (config.startsWith('trojan://')) {
-                    converted = convertTrojan(config);
+                    converted = parseTrojanConfig(config);
                 } else if (config.startsWith('hysteria2://') || config.startsWith('hy2://')) {
-                    converted = convertHysteria2(config);
+                    converted = parseHysteria2Config(config);
                 } else if (config.startsWith('ss://')) {
-                    converted = convertShadowsocks(config);
+                    converted = parseSsConfig(config);
                 }
             } catch (e) {
                 console.error(`Failed to convert config: ${config}`, e);
