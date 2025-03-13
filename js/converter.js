@@ -96,167 +96,22 @@ async function extractStandardConfigs(input) {
     return [...new Set(configs)];
 }
 
-function decodeBase64(str) {
-    try {
-        return atob(str);
-    } catch (e) {
-        console.error('Failed to decode Base64:', e);
-        return null;
-    }
-}
-
-function decodeUrlComponent(str) {
-    try {
-        return decodeURIComponent(str);
-    } catch (e) {
-        console.error('Failed to decode URL component:', e);
-        return str;
-    }
-}
-
-function convertShadowsocks(config) {
-    const url = new URL(config);
-    const base64Part = url.username;
-    const decoded = decodeBase64(base64Part);
-    if (!decoded) throw new Error('Invalid Shadowsocks config');
-
-    const [method, password] = decoded.split(':');
-    if (!method || !password) throw new Error('Invalid Shadowsocks config');
-
-    const server = url.hostname;
-    const port = url.port;
-    const tag = url.hash ? decodeUrlComponent(url.hash.slice(1)) : 'Shadowsocks';
-
-    return {
-        type: 'shadowsocks',
-        tag: tag,
-        server: server,
-        server_port: parseInt(port, 10),
-        method: method,
-        password: password
-    };
-}
-
-function convertVmess(config) {
-    const base64Part = config.replace('vmess://', '');
-    const decoded = decodeBase64(base64Part);
-    if (!decoded) throw new Error('Invalid Vmess config');
-
-    const vmessJson = JSON.parse(decoded);
-    const tag = vmessJson.ps || vmessJson.add || 'Vmess';
-
-    return {
-        type: 'vmess',
-        tag: tag,
-        server: vmessJson.add,
-        server_port: parseInt(vmessJson.port, 10),
-        uuid: vmessJson.id,
-        security: vmessJson.scy || 'auto',
-        alter_id: parseInt(vmessJson.aid || 0, 10),
-        transport: {
-            type: vmessJson.net,
-            ...(vmessJson.net === 'ws' ? { path: vmessJson.path || '/' } : {}),
-            ...(vmessJson.net === 'grpc' ? { service_name: vmessJson.path } : {}),
-            ...(vmessJson.net === 'tcp' ? {} : {}),
-            ...(vmessJson.net === 'http' ? { host: [vmessJson.host], path: vmessJson.path } : {}),
-        },
-        tls: vmessJson.tls === 'tls' ? { enabled: true } : { enabled: false }
-    };
-}
-
-function convertVless(config) {
-    const url = new URL(config);
-    const uuid = url.username;
-    const server = url.hostname;
-    const port = url.port;
-    const tag = url.hash ? decodeUrlComponent(url.hash.slice(1)) : 'Vless';
-
-    const params = new URLSearchParams(url.search);
-    const transportType = params.get('type') || 'tcp';
-    const security = params.get('security') || 'none';
-
-    return {
-        type: 'vless',
-        tag: tag,
-        server: server,
-        server_port: parseInt(port, 10),
-        uuid: uuid,
-        transport: {
-            type: transportType,
-            ...(transportType === 'ws' ? { path: params.get('path') || '/' } : {}),
-            ...(transportType === 'grpc' ? { service_name: params.get('serviceName') } : {}),
-            ...(transportType === 'tcp' ? {} : {}),
-            ...(transportType === 'http' ? { host: [params.get('host')], path: params.get('path') } : {}),
-        },
-        tls: security === 'tls' ? { enabled: true } : { enabled: false }
-    };
-}
-
-function convertTrojan(config) {
-    const url = new URL(config);
-    const password = decodeUrlComponent(url.username);
-    const server = url.hostname;
-    const port = url.port;
-    const tag = url.hash ? decodeUrlComponent(url.hash.slice(1)) : 'Trojan';
-
-    const params = new URLSearchParams(url.search);
-    const transportType = params.get('type') || 'tcp';
-    const security = params.get('security') || 'tls';
-
-    return {
-        type: 'trojan',
-        tag: tag,
-        server: server,
-        server_port: parseInt(port, 10),
-        password: password,
-        transport: {
-            type: transportType,
-            ...(transportType === 'ws' ? { path: params.get('path') || '/' } : {}),
-            ...(transportType === 'grpc' ? { service_name: params.get('serviceName') } : {}),
-            ...(transportType === 'tcp' ? {} : {}),
-            ...(transportType === 'http' ? { host: [params.get('host')], path: params.get('path') } : {}),
-        },
-        tls: security === 'tls' ? { enabled: true } : { enabled: false }
-    };
-}
-
-function convertHysteria2(config) {
-    const url = new URL(config.replace('hy2://', 'hysteria2://'));
-    const auth = decodeUrlComponent(url.username);
-    const server = url.hostname;
-    const port = url.port;
-    const tag = url.hash ? decodeUrlComponent(url.hash.slice(1)) : 'Hysteria2';
-
-    const params = new URLSearchParams(url.search);
-    const obfs = params.get('obfs');
-    const obfsPassword = params.get('obfs-password');
-
-    return {
-        type: 'hysteria2',
-        tag: tag,
-        server: server,
-        server_port: parseInt(port, 10),
-        auth: auth,
-        obfs: obfs ? { type: obfs, password: obfsPassword } : undefined
-    };
-}
-
 async function convertConfig() {
     const input = document.getElementById('input').value.trim();
     const errorDiv = document.getElementById('error');
-
+    
     if (!input) {
         errorDiv.textContent = 'Please enter proxy configurations';
         return;
     }
-
+    
     startLoading();
-
+    
     try {
         const configs = await extractStandardConfigs(input);
         const outbounds = [];
         const validTags = [];
-
+        
         for (const config of configs) {
             let converted;
             try {
@@ -275,17 +130,17 @@ async function convertConfig() {
                 console.error(`Failed to convert config: ${config}`, e);
                 continue;
             }
-
+            
             if (converted) {
                 outbounds.push(converted);
                 validTags.push(converted.tag);
             }
         }
-
+        
         if (outbounds.length === 0) {
             throw new Error('No valid configurations found');
         }
-
+        
         const singboxConfig = createSingboxConfig(outbounds, validTags);
         const jsonString = JSON.stringify(singboxConfig, null, 2);
         editor.setValue(jsonString);
