@@ -24,6 +24,13 @@ function copyToClipboard() {
         .catch(err => console.error('Failed to copy:', err));
 }
 
+function copySubscriptionLink() {
+    const link = document.querySelector('.subscription-input').value;
+    navigator.clipboard.writeText(link)
+        .then(() => alert('Subscription link copied to clipboard!'))
+        .catch(err => console.error('Failed to copy:', err));
+}
+
 function downloadJSON() {
     const content = editor.getValue();
     if (!content) return;
@@ -36,11 +43,4 @@ function downloadJSON() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-}
-
-function copyLinkToClipboard() {
-    const link = "https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/singbox_configs.json";
-    navigator.clipboard.writeText(link)
-        .then(() => alert('Link copied to clipboard!'))
-        .catch(err => console.error('Failed to copy link:', err));
 }
