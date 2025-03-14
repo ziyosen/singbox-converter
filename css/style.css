@@ -61,6 +61,37 @@ body {
     font-size: 0.9em;
 }
 
+.subscription-card {
+    background-color: var(--terminal-input-bg);
+    border: 1px solid var(--terminal-border);
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.subscription-card p {
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.subscription-input-container {
+    margin-bottom: 15px;
+}
+
+.subscription-input {
+    width: 100%;
+    background-color: var(--terminal-bg);
+    border: 1px solid var(--terminal-border);
+    border-radius: 4px;
+    color: var(--terminal-text);
+    padding: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    cursor: text;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .terminal-section {
     margin: 20px 0;
 }
