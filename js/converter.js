@@ -41,18 +41,21 @@ function extractConfigsFromText(text) {
         protocol,
         regex: new RegExp(`(${protocol}[^\\s]+)`, 'g')
     }));
+
     for (const { regex } of protocolPatterns) {
         const matches = text.match(regex);
         if (matches) {
             configs.push(...matches);
         }
     }
+
     return configs;
 }
 
 async function extractStandardConfigs(input) {
     const configs = [];
     const lines = input.split('\n').map(line => line.trim()).filter(line => line);
+
     for (const line of lines) {
         if (isLink(line)) {
             const content = await fetchContent(line);
@@ -85,92 +88,30 @@ async function extractStandardConfigs(input) {
             configs.push(...subConfigs);
         }
     }
+
     const allText = input.replace(/\n/g, ' ');
     const subConfigsFromText = extractConfigsFromText(allText);
     configs.push(...subConfigsFromText);
+
     return [...new Set(configs)];
-}
-
-function convertShadowsocks(config) {
-    const url = new URL(config);
-    const encodedPart = url.pathname.slice(1);
-    const decoded = atob(encodedPart);
-    const [methodPassword, serverPort] = decoded.split('@');
-    const [method, password] = methodPassword.split(':');
-    const [server, port] = serverPort.split(':');
-    const tag = url.hash.slice(1) || 'Shadowsocks';
-    return {
-        type: 'shadowsocks',
-        tag: tag,
-        server: server,
-        server_port: parseInt(port, 10),
-        method: method,
-        password: password
-    };
-}
-
-function convertVmess(config) {
-    const decoded = JSON.parse(atob(config.slice(8)));
-    return {
-        type: 'vmess',
-        tag: decoded.ps || 'Vmess',
-        server: decoded.add,
-        server_port: parseInt(decoded.port, 10),
-        uuid: decoded.id,
-        security: decoded.scy || 'auto',
-        alter_id: parseInt(decoded.aid || 0, 10)
-    };
-}
-
-function convertVless(config) {
-    const url = new URL(config);
-    const params = new URLSearchParams(url.search);
-    return {
-        type: 'vless',
-        tag: url.hash.slice(1) || 'Vless',
-        server: url.hostname,
-        server_port: parseInt(url.port, 10),
-        uuid: url.username,
-        encryption: params.get('encryption') || 'none'
-    };
-}
-
-function convertTrojan(config) {
-    const url = new URL(config);
-    const params = new URLSearchParams(url.search);
-    return {
-        type: 'trojan',
-        tag: url.hash.slice(1) || 'Trojan',
-        server: url.hostname,
-        server_port: parseInt(url.port, 10),
-        password: url.username
-    };
-}
-
-function convertHysteria2(config) {
-    const url = new URL(config);
-    const params = new URLSearchParams(url.search);
-    return {
-        type: 'hysteria2',
-        tag: url.hash.slice(1) || 'Hysteria2',
-        server: url.hostname,
-        server_port: parseInt(url.port, 10),
-        password: url.username
-    };
 }
 
 async function convertConfig() {
     const input = document.getElementById('input').value.trim();
     const errorDiv = document.getElementById('error');
+    
     if (!input) {
         errorDiv.textContent = 'Please enter proxy configurations';
         return;
     }
+    
     startLoading();
+    
     try {
         const configs = await extractStandardConfigs(input);
         const outbounds = [];
         const validTags = [];
+        
         for (const config of configs) {
             let converted;
             try {
@@ -189,14 +130,17 @@ async function convertConfig() {
                 console.error(`Failed to convert config: ${config}`, e);
                 continue;
             }
+            
             if (converted) {
                 outbounds.push(converted);
                 validTags.push(converted.tag);
             }
         }
+        
         if (outbounds.length === 0) {
             throw new Error('No valid configurations found');
         }
+        
         const singboxConfig = createSingboxConfig(outbounds, validTags);
         const jsonString = JSON.stringify(singboxConfig, null, 2);
         editor.setValue(jsonString);
