@@ -44,3 +44,11 @@ function downloadJSON() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+function pasteFromClipboard() {
+    navigator.clipboard.readText()
+        .then(text => {
+            document.getElementById('input').value = text;
+        })
+        .catch(err => console.error('Failed to paste:', err));
+}
