@@ -37,3 +37,10 @@ function downloadJSON() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+function copyLinkToClipboard() {
+    const link = "https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/singbox_configs.json";
+    navigator.clipboard.writeText(link)
+        .then(() => alert('Link copied to clipboard!'))
+        .catch(err => console.error('Failed to copy link:', err));
+}
