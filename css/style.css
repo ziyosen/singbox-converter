@@ -60,11 +60,16 @@ body {
     display: flex;
     justify-content: center;
     gap: 10px;
+}
+
+.badge-container {
+    display: flex;
     align-items: center;
 }
 
 .badge {
     height: 20px;
+    vertical-align: middle;
 }
 
 .subscription-card {
