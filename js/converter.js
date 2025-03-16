@@ -1,5 +1,4 @@
 const SUPPORTED_PROTOCOLS = ['vmess://', 'vless://', 'trojan://', 'hysteria2://', 'hy2://', 'ss://'];
-const PROXY_URL = 'https://cors-anywhere.herokuapp.com/';
 
 function isLink(str) {
     return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('ssconf://');
@@ -12,12 +11,8 @@ function isBase64(str) {
 }
 
 async function fetchContent(link) {
-    const useProxy = document.getElementById('proxyToggle').checked;
     if (link.startsWith('ssconf://')) {
         link = link.replace('ssconf://', 'https://');
-    }
-    if (useProxy) {
-        link = PROXY_URL + link;
     }
     try {
         const response = await fetch(link);
