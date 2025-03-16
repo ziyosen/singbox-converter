@@ -60,26 +60,14 @@ async function extractStandardConfigs(input) {
         if (isLink(line)) {
             const content = await fetchContent(line);
             if (content) {
-                const subConfigs = extractConfigsFromText(content);
+                const subConfigs = await processContent(content);
                 configs.push(...subConfigs);
             }
         } else if (isBase64(line)) {
             try {
                 const decoded = atob(line);
-                const subConfigs = extractConfigsFromText(decoded);
+                const subConfigs = await processContent(decoded);
                 configs.push(...subConfigs);
-                const nestedLines = decoded.split('\n').map(line => line.trim()).filter(line => line);
-                for (const nestedLine of nestedLines) {
-                    if (isBase64(nestedLine)) {
-                        try {
-                            const nestedDecoded = atob(nestedLine);
-                            const nestedConfigs = extractConfigsFromText(nestedDecoded);
-                            configs.push(...nestedConfigs);
-                        } catch (e) {
-                            console.error('Failed to decode nested Base64:', e);
-                        }
-                    }
-                }
             } catch (e) {
                 console.error('Failed to decode Base64:', e);
             }
@@ -94,6 +82,28 @@ async function extractStandardConfigs(input) {
     configs.push(...subConfigsFromText);
 
     return [...new Set(configs)];
+}
+
+async function processContent(content) {
+    const configs = [];
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+
+    for (const line of lines) {
+        if (isBase64(line)) {
+            try {
+                const decoded = atob(line);
+                const subConfigs = extractConfigsFromText(decoded);
+                configs.push(...subConfigs);
+            } catch (e) {
+                console.error('Failed to decode nested Base64:', e);
+            }
+        } else {
+            const subConfigs = extractConfigsFromText(line);
+            configs.push(...subConfigs);
+        }
+    }
+
+    return configs;
 }
 
 async function convertConfig() {
