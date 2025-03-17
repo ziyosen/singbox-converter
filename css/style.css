@@ -117,15 +117,14 @@ body {
     display: flex;
     align-items: center;
     color: var(--terminal-text);
-    font-size: 14px;
+    font-size: 10px;
 }
 
 .terminal-section input[type="checkbox"] {
-    width: 1.2em;
-    height: 1.2em;
+    width: 14px;
+    height: 14px;
     margin-right: 8px;
     accent-color: var(--terminal-purple);
-    transform: scale(1.2);
 }
 
 .terminal-textarea {
@@ -266,12 +265,11 @@ body {
     }
     
     .terminal-section label {
-        font-size: 12px;
+        font-size: 10px;
     }
     
     .terminal-section input[type="checkbox"] {
-        width: 1em;
-        height: 1em;
-        transform: scale(1);
+        width: 12px;
+        height: 12px;
     }
 }
