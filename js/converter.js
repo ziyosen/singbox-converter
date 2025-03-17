@@ -109,6 +109,7 @@ async function processContent(content) {
 async function convertConfig() {
     const input = document.getElementById('input').value.trim();
     const errorDiv = document.getElementById('error');
+    const enableAdBlockAndIran = document.getElementById('enableAdBlockAndIran').checked;
     
     if (!input) {
         errorDiv.textContent = 'Please enter proxy configurations';
@@ -151,7 +152,7 @@ async function convertConfig() {
             throw new Error('No valid configurations found');
         }
         
-        const singboxConfig = createSingboxConfig(outbounds, validTags);
+        const singboxConfig = enableAdBlockAndIran ? createEnhancedSingboxConfig(outbounds, validTags) : createSingboxConfig(outbounds, validTags);
         const jsonString = JSON.stringify(singboxConfig, null, 2);
         editor.setValue(jsonString);
         editor.clearSelection();
@@ -252,6 +253,183 @@ function createSingboxConfig(outbounds, validTags) {
                 { clash_mode: "Direct", outbound: "direct" },
                 { clash_mode: "Global", outbound: "proxy" },
                 { protocol: "dns", action: "hijack-dns" }
+            ]
+        }
+    };
+}
+
+function createEnhancedSingboxConfig(outbounds, validTags) {
+    return {
+        dns: {
+            final: "local-dns",
+            rules: [
+                { clash_mode: "Global", server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
+                { server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
+                { clash_mode: "Direct", server: "direct-dns" },
+                {
+                    rule_set: ["geosite-ir"],
+                    server: "direct-dns"
+                },
+                {
+                    rule_set: ["geosite-category-ads-all", "geosite-malware", "geosite-phishing", "geosite-cryptominers"],
+                    server: "block"
+                }
+            ],
+            servers: [
+                {
+                    address: "tls://208.67.222.123",
+                    address_resolver: "local-dns",
+                    detour: "proxy",
+                    tag: "proxy-dns"
+                },
+                {
+                    address: "local",
+                    detour: "direct",
+                    tag: "local-dns"
+                },
+                {
+                    address: "rcode://success",
+                    tag: "block"
+                },
+                {
+                    address: "local",
+                    detour: "direct",
+                    tag: "direct-dns"
+                }
+            ],
+            strategy: "prefer_ipv4"
+        },
+        inbounds: [
+            {
+                address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
+                auto_route: true,
+                endpoint_independent_nat: false,
+                mtu: 9000,
+                platform: {
+                    http_proxy: {
+                        enabled: true,
+                        server: "127.0.0.1",
+                        server_port: 2080
+                    }
+                },
+                sniff: true,
+                stack: "system",
+                strict_route: false,
+                type: "tun"
+            },
+            {
+                listen: "127.0.0.1",
+                listen_port: 2080,
+                sniff: true,
+                type: "mixed",
+                users: []
+            }
+        ],
+        outbounds: [
+            {
+                tag: "proxy",
+                type: "selector",
+                outbounds: ["auto"].concat(validTags).concat(["direct"])
+            },
+            {
+                tag: "auto",
+                type: "urltest",
+                outbounds: validTags,
+                url: "http://www.gstatic.com/generate_204",
+                interval: "10m",
+                tolerance: 50
+            },
+            {
+                tag: "direct",
+                type: "direct"
+            },
+            ...outbounds
+        ],
+        route: {
+            auto_detect_interface: true,
+            final: "proxy",
+            rules: [
+                { clash_mode: "Direct", outbound: "direct" },
+                { clash_mode: "Global", outbound: "proxy" },
+                { protocol: "dns", action: "hijack-dns" },
+                {
+                    domain_suffix: [".ir"],
+                    outbound: "direct"
+                },
+                {
+                    rule_set: ["geoip-ir", "geosite-ir"],
+                    outbound: "direct"
+                },
+                {
+                    rule_set: ["geosite-category-ads-all", "geosite-malware", "geosite-phishing", "geosite-cryptominers", "geoip-malware", "geoip-phishing"],
+                    outbound: "block"
+                }
+            ],
+            rule_set: [
+                {
+                    tag: "geosite-ir",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-ir.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geosite-category-ads-all",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-category-ads-all.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geosite-malware",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-malware.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geosite-phishing",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-phishing.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geosite-cryptominers",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-cryptominers.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geoip-ir",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-ir.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geoip-malware",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-malware.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geoip-phishing",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-phishing.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                }
             ]
         }
     };
