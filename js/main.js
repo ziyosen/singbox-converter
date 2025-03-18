@@ -46,9 +46,60 @@ function downloadJSON() {
 }
 
 function pasteFromClipboard() {
-    navigator.clipboard.readText()
-        .then(text => {
-            document.getElementById('input').value = text;
-        })
-        .catch(err => console.error('Failed to paste:', err));
+    try {
+        navigator.clipboard.readText()
+            .then(text => {
+                document.getElementById('input').value = text;
+            })
+            .catch(err => {
+                alert('Please allow clipboard access to paste content');
+                console.error('Failed to paste:', err);
+            });
+    }
+    catch {
+        alert('Please allow clipboard access to paste content');
+    }
+}
+
+async function pasteFromURL() {
+    const url = prompt('Enter URL:');
+    if (!url) return;
+
+    try {
+        startLoading();
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const text = await response.text();
+        document.getElementById('input').value = text;
+    } catch (err) {
+        alert('Failed to fetch from URL: ' + err.message);
+        console.error('Failed to fetch:', err);
+    } finally {
+        stopLoading();
+    }
+}
+
+function pasteFromFile() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.txt,.json';
+    
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('input').value = e.target.result;
+        };
+        reader.onerror = function(e) {
+            alert('Error reading file');
+            console.error('File read error:', e);
+        };
+        reader.readAsText(file);
+    };
+
+    input.click();
 }
