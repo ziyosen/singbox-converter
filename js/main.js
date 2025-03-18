@@ -84,7 +84,7 @@ async function pasteFromURL() {
 function pasteFromFile() {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.txt,.json';
+    input.accept = '.txt,.json,.yaml,.yml,.conf,.vless,.vmess,.trojan,.hysteria,.ss,.ssr,.vlessconf,.vmessconf,.trojanconf,.hysteriaconf,.ssconf,.ssrconf';
     
     input.onchange = function(e) {
         const file = e.target.files[0];
