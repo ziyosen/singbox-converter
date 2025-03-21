@@ -77,6 +77,12 @@
             </div>
 
             <div class="terminal-section">
+                <p>Paste your Sing-box JSON configuration to convert it back to standard proxy configs (VMess, VLESS, Trojan, Hysteria2, Shadowsocks).</p>
+                <textarea id="jsonInput" class="terminal-textarea"
+                    placeholder="Paste Sing-box JSON configuration here..."></textarea>
+            </div>
+
+            <div class="terminal-section">
                 <label>
                     <input type="checkbox" id="enableAdBlockAndIran" />
                     Enable Ad Blocking, Malware Protection, Phishing Prevention, Cryptominer Blocking, and Direct Access
@@ -86,6 +92,7 @@
 
             <div class="terminal-actions">
                 <button onclick="convertConfig()" class="glow-button primary">Convert to Sing-box</button>
+                <button onclick="convertJsonToConfig()" class="glow-button primary">Convert JSON to Config</button>
                 <button id="clearButton" onclick="clearAll()" class="glow-button secondary" disabled>Clear</button>
             </div>
 
@@ -96,7 +103,7 @@
             <div id="error" class="terminal-error"></div>
 
             <div class="terminal-section">
-                <h3>Sing-box Configuration:</h3>
+                <h3>Result:</h3>
                 <div id="editor" class="terminal-editor"></div>
             </div>
 
