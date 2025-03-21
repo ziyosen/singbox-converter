@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sing-box Config Converter (Drill)</title>
+    <title>Sing-box Config Converter and Extractor (Drill)</title>
     <meta name="description"
-        content="Convert your proxy configs to Sing-box configurations with ease. Supports multiple protocols including VMess, VLESS, Trojan, Hysteria2, and Shadowsocks.">
-    <meta name="keywords" content="Sing-box, config converter, proxy, VMess, VLESS, Trojan, Hysteria2, Shadowsocks">
+        content="Convert your proxy configs to Sing-box configurations or extract proxy configs from Sing-box JSON with ease. Supports multiple protocols including VMess, VLESS, Trojan, Hysteria2, and Shadowsocks. Also supports Sing-box JSON extraction.">
+    <meta name="keywords" content="Sing-box, config converter, proxy, VMess, VLESS, Trojan, Hysteria2, Shadowsocks, JSON extractor">
     <meta name="author" content="Anonymous">
     <meta name="robots" content="index, follow">
     <meta name="googlebot" content="index, follow">
@@ -32,7 +32,7 @@
     <div class="loading-screen"></div>
     <div class="terminal-container">
         <div class="terminal-header">
-            <div class="terminal-title">Sing-box Config Converter (Drill)</div>
+            <div class="terminal-title">Sing-box Config Converter and Extractor (Drill)</div>
         </div>
 
         <div class="terminal-content">
@@ -64,16 +64,14 @@
             </div>
 
             <div class="terminal-section">
-                <p>Paste your proxy configs, links, or Base64-encoded data. Supports VMess, VLESS, Trojan, Hysteria2,
-                    and Shadowsocks (ss). You can use plain configs, links (http, https, ssconf), or Base64-encoded
-                    configs.</p>
+                <p>Enter your proxy configurations, links, Base64-encoded data, or Sing-box JSON code. Supports VMess, VLESS, Trojan, Hysteria2, Shadowsocks (ss), and Sing-box JSON. You can use plain configs, links (http, https, ssconf), Base64-encoded data, or Sing-box JSON.</p>
                 <div class="terminal-actions">
                     <button onclick="pasteFromClipboard()" class="glow-button secondary">Paste from Clipboard</button>
                     <button onclick="pasteFromURL()" class="glow-button secondary">Paste from URL</button>
                     <button onclick="pasteFromFile()" class="glow-button secondary">Paste from File</button>
                 </div>
-                <textarea id="input" class="terminal-textarea"
-                    placeholder="Paste proxy configs, links (http, https, ssconf), or Base64-encoded data here..."></textarea>
+                <textarea id="input" class="terminal-textarea" oninput="checkInputType()"
+                    placeholder="Enter proxy configs, links (http, https, ssconf), Base64-encoded data, or Sing-box JSON here..."></textarea>
             </div>
 
             <div class="terminal-section">
@@ -96,7 +94,7 @@
             <div id="error" class="terminal-error"></div>
 
             <div class="terminal-section">
-                <h3>Sing-box Configuration:</h3>
+                <h3>Result:</h3>
                 <div id="editor" class="terminal-editor"></div>
             </div>
 
