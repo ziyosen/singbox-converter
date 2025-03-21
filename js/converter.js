@@ -164,23 +164,24 @@ function reverseConvertConfig() {
         return;
     }
     const plainConfigs = [];
+    let count = 1;
     for (const outbound of config.outbounds) {
         if (!outbound.type || ["selector", "urltest", "direct"].includes(outbound.type) || ["proxy","auto","direct"].includes(outbound.tag)) continue;
+        let plain;
         if (outbound.type === "vmess") {
-            const plain = reverseConvertVmess(outbound);
-            if (plain) plainConfigs.push(plain);
+            plain = reverseConvertVmess(outbound);
         } else if (outbound.type === "vless") {
-            const plain = reverseConvertVless(outbound);
-            if (plain) plainConfigs.push(plain);
+            plain = reverseConvertVless(outbound);
         } else if (outbound.type === "trojan") {
-            const plain = reverseConvertTrojan(outbound);
-            if (plain) plainConfigs.push(plain);
+            plain = reverseConvertTrojan(outbound);
         } else if (outbound.type === "hysteria2") {
-            const plain = reverseConvertHysteria2(outbound);
-            if (plain) plainConfigs.push(plain);
+            plain = reverseConvertHysteria2(outbound);
         } else if (outbound.type === "shadowsocks") {
-            const plain = reverseConvertShadowsocks(outbound);
-            if (plain) plainConfigs.push(plain);
+            plain = reverseConvertShadowsocks(outbound);
+        }
+        if (plain) {
+            plainConfigs.push(plain + "#Anon" + count);
+            count++;
         }
     }
     if (plainConfigs.length === 0) {
