@@ -1,12 +1,15 @@
 const SUPPORTED_PROTOCOLS = ['vmess://', 'vless://', 'trojan://', 'hysteria2://', 'hy2://', 'ss://'];
+
 function isLink(str) {
     return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('ssconf://');
 }
+
 function isBase64(str) {
     if (!str || str.length % 4 !== 0) return false;
     const base64Regex = /^[A-Za-z0-9+/=]+$/;
     return base64Regex.test(str);
 }
+
 async function fetchContent(link) {
     if (link.startsWith('ssconf://')) {
         link = link.replace('ssconf://', 'https://');
@@ -31,23 +34,28 @@ async function fetchContent(link) {
         return null;
     }
 }
+
 function extractConfigsFromText(text) {
     const configs = [];
     const protocolPatterns = SUPPORTED_PROTOCOLS.map(protocol => ({
         protocol,
         regex: new RegExp(`(${protocol}[^\\s]+)`, 'g')
     }));
+
     for (const { regex } of protocolPatterns) {
         const matches = text.match(regex);
         if (matches) {
             configs.push(...matches);
         }
     }
+
     return configs;
 }
+
 async function extractStandardConfigs(input) {
     const configs = [];
     const lines = input.split('\n').map(line => line.trim()).filter(line => line);
+
     for (const line of lines) {
         if (isLink(line)) {
             const content = await fetchContent(line);
@@ -68,14 +76,18 @@ async function extractStandardConfigs(input) {
             configs.push(...subConfigs);
         }
     }
+
     const allText = input.replace(/\n/g, ' ');
     const subConfigsFromText = extractConfigsFromText(allText);
     configs.push(...subConfigsFromText);
+
     return [...new Set(configs)];
 }
+
 async function processContent(content) {
     const configs = [];
     const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+
     for (const line of lines) {
         if (isBase64(line)) {
             try {
@@ -90,21 +102,27 @@ async function processContent(content) {
             configs.push(...subConfigs);
         }
     }
+
     return configs;
 }
+
 async function convertConfig() {
     const input = document.getElementById('input').value.trim();
     const errorDiv = document.getElementById('error');
     const enableAdBlockAndIran = document.getElementById('enableAdBlockAndIran').checked;
+    
     if (!input) {
         errorDiv.textContent = 'Please enter proxy configurations';
         return;
     }
+    
     startLoading();
+    
     try {
         const configs = await extractStandardConfigs(input);
         const outbounds = [];
         const validTags = [];
+        
         for (const config of configs) {
             let converted;
             try {
@@ -123,14 +141,17 @@ async function convertConfig() {
                 console.error(`Failed to convert config: ${config}`, e);
                 continue;
             }
+            
             if (converted) {
                 outbounds.push(converted);
                 validTags.push(converted.tag);
             }
         }
+        
         if (outbounds.length === 0) {
             throw new Error('No valid configurations found');
         }
+        
         const singboxConfig = enableAdBlockAndIran ? createEnhancedSingboxConfig(outbounds, validTags) : createSingboxConfig(outbounds, validTags);
         const jsonString = JSON.stringify(singboxConfig, null, 2);
         editor.setValue(jsonString);
@@ -145,124 +166,7 @@ async function convertConfig() {
         stopLoading();
     }
 }
-function reverseConvertConfig() {
-    const input = document.getElementById('input').value.trim();
-    const errorDiv = document.getElementById('error');
-    if (!input) {
-        errorDiv.textContent = 'Please enter Sing-box JSON configuration';
-        return;
-    }
-    let config;
-    try {
-        config = JSON.parse(input);
-    } catch (e) {
-        errorDiv.textContent = 'Invalid JSON input';
-        return;
-    }
-    if (!config.outbounds || !Array.isArray(config.outbounds)) {
-        errorDiv.textContent = 'Invalid Sing-box configuration';
-        return;
-    }
-    const plainConfigs = [];
-    let count = 1;
-    for (const outbound of config.outbounds) {
-        if (!outbound.type || ["selector", "urltest", "direct"].includes(outbound.type) || ["proxy","auto","direct"].includes(outbound.tag)) continue;
-        let plain;
-        if (outbound.type === "vmess") {
-            plain = reverseConvertVmess(outbound);
-        } else if (outbound.type === "vless") {
-            plain = reverseConvertVless(outbound);
-        } else if (outbound.type === "trojan") {
-            plain = reverseConvertTrojan(outbound);
-        } else if (outbound.type === "hysteria2") {
-            plain = reverseConvertHysteria2(outbound);
-        } else if (outbound.type === "shadowsocks") {
-            plain = reverseConvertShadowsocks(outbound);
-        }
-        if (plain) {
-            plainConfigs.push(plain + "#Anon" + count);
-            count++;
-        }
-    }
-    if (plainConfigs.length === 0) {
-        errorDiv.textContent = 'No convertible outbound configurations found';
-        editor.setValue('');
-        return;
-    }
-    editor.setValue(plainConfigs.join('\n'));
-    editor.clearSelection();
-    errorDiv.textContent = '';
-}
-function reverseConvertVmess(outbound) {
-    const data = {};
-    data.add = outbound.server;
-    data.port = outbound.server_port.toString();
-    data.id = outbound.uuid;
-    data.aid = outbound.alter_id ? outbound.alter_id.toString() : "0";
-    data.scy = outbound.security || "auto";
-    data.tls = (outbound.tls && outbound.tls.enabled) ? "tls" : "";
-    if (outbound.transport && outbound.transport.type && outbound.transport.type !== "tcp") {
-        data.net = outbound.transport.type;
-        if (outbound.transport.path) data.path = outbound.transport.path;
-        if (outbound.transport.headers && outbound.transport.headers.Host) data.host = outbound.transport.headers.Host;
-    } else {
-        data.net = "tcp";
-    }
-    return "vmess://" + btoa(JSON.stringify(data));
-}
-function reverseConvertVless(outbound) {
-    let url = "vless://" + outbound.uuid + "@" + outbound.server + ":" + outbound.server_port;
-    const params = new URLSearchParams();
-    if (outbound.tls && outbound.tls.enabled) {
-        params.append("sni", outbound.tls.server_name || outbound.server);
-    }
-    if (outbound.flow) {
-        params.append("flow", outbound.flow);
-    }
-    if (outbound.transport && outbound.transport.type === "ws") {
-        params.append("type", "ws");
-        if (outbound.transport.path) params.append("path", outbound.transport.path);
-        if (outbound.transport.headers && outbound.transport.headers.Host) params.append("host", outbound.transport.headers.Host);
-    }
-    const query = params.toString();
-    if (query) url += "?" + query;
-    return url;
-}
-function reverseConvertTrojan(outbound) {
-    let url = "trojan://" + outbound.password + "@" + outbound.server + ":" + outbound.server_port;
-    const params = new URLSearchParams();
-    if (outbound.tls && outbound.tls.enabled) {
-        params.append("sni", outbound.tls.server_name || outbound.server);
-        if (outbound.tls.alpn && Array.isArray(outbound.tls.alpn) && outbound.tls.alpn.length > 0) {
-            params.append("alpn", outbound.tls.alpn.join(","));
-        }
-    }
-    if (outbound.transport && outbound.transport.type && outbound.transport.type !== "tcp") {
-        params.append("type", outbound.transport.type);
-        if (outbound.transport.path) params.append("path", outbound.transport.path);
-    }
-    const query = params.toString();
-    if (query) url += "?" + query;
-    return url;
-}
-function reverseConvertHysteria2(outbound) {
-    let pass = outbound.password;
-    if(pass.startsWith('@')) {
-        pass = pass.substring(1);
-    }
-    let url = "hysteria2://" + pass + "@" + outbound.server + ":" + outbound.server_port;
-    const params = new URLSearchParams();
-    if (outbound.tls && outbound.tls.enabled) {
-        params.append("sni", outbound.tls.server_name || outbound.server);
-    }
-    const query = params.toString();
-    if (query) url += "?" + query;
-    return url;
-}
-function reverseConvertShadowsocks(outbound) {
-    const userInfo = btoa(outbound.method + ":" + outbound.password);
-    return "ss://" + userInfo + "@" + outbound.server + ":" + outbound.server_port;
-}
+
 function createSingboxConfig(outbounds, validTags) {
     return {
         dns: {
@@ -353,6 +257,7 @@ function createSingboxConfig(outbounds, validTags) {
         }
     };
 }
+
 function createEnhancedSingboxConfig(outbounds, validTags) {
     return {
         dns: {
