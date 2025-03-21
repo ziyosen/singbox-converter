@@ -26,13 +26,19 @@ function generateUUID() {
     });
 }
 
+function safeBtoa(input) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(input);
+    return btoa(String.fromCharCode(...data));
+}
+
 function convertToVmess(outbound) {
-    const { server, server_port, uuid, security, alter_id, transport, tls } = outbound;
+    const { server, server_port, uuid, security, alter_id, transport, tls, tag } = outbound;
     if (!server || !server_port || !uuid) return null;
 
     const data = {
         v: "2",
-        ps: outbound.tag || "vmess",
+        ps: tag || "vmess",
         add: server,
         port: server_port,
         id: uuid,
@@ -47,12 +53,12 @@ function convertToVmess(outbound) {
     };
 
     const jsonStr = JSON.stringify(data);
-    const base64Str = btoa(jsonStr);
+    const base64Str = safeBtoa(jsonStr);
     return `vmess://${base64Str}`;
 }
 
 function convertToVless(outbound) {
-    const { server, server_port, uuid, flow, transport, tls } = outbound;
+    const { server, server_port, uuid, flow, transport, tls, tag } = outbound;
     if (!server || !server_port || !uuid) return null;
 
     const params = new URLSearchParams();
@@ -62,12 +68,12 @@ function convertToVless(outbound) {
     if (transport?.headers?.Host) params.set('host', transport.headers.Host);
     if (tls?.server_name) params.set('sni', tls.server_name);
 
-    const url = `vless://${uuid}@${server}:${server_port}?${params.toString()}#${outbound.tag || "vless"}`;
+    const url = `vless://${uuid}@${server}:${server_port}?${params.toString()}#${encodeURIComponent(tag || "vless")}`;
     return url;
 }
 
 function convertToTrojan(outbound) {
-    const { server, server_port, password, transport, tls } = outbound;
+    const { server, server_port, password, transport, tls, tag } = outbound;
     if (!server || !server_port || !password) return null;
 
     const params = new URLSearchParams();
@@ -76,27 +82,29 @@ function convertToTrojan(outbound) {
     if (tls?.server_name) params.set('sni', tls.server_name);
     if (tls?.alpn?.length) params.set('alpn', tls.alpn.join(','));
 
-    const url = `trojan://${password}@${server}:${server_port}?${params.toString()}#${outbound.tag || "trojan"}`;
+    const url = `trojan://${encodeURIComponent(password)}@${server}:${server_port}?${params.toString()}#${encodeURIComponent(tag || "trojan")}`;
     return url;
 }
 
 function convertToHysteria2(outbound) {
-    const { server, server_port, password, tls } = outbound;
+    const { server, server_port, password, tls, tag, obfs } = outbound;
     if (!server || !server_port) return null;
 
     const params = new URLSearchParams();
-    if (password) params.set('password', password);
     if (tls?.server_name) params.set('sni', tls.server_name);
+    if (tls?.insecure) params.set('insecure', '1');
+    if (obfs?.type) params.set('obfs', obfs.type);
+    if (obfs?.password) params.set('obfs-password', obfs.password);
 
-    const url = `hysteria2://${password ? password + '@' : ''}${server}:${server_port}?${params.toString()}#${outbound.tag || "hysteria2"}`;
+    const url = `hysteria2://${encodeURIComponent(password || '')}@${server}:${server_port}/?${params.toString()}#${encodeURIComponent(tag || "hysteria2")}`;
     return url;
 }
 
 function convertToShadowsocks(outbound) {
-    const { server, server_port, method, password } = outbound;
+    const { server, server_port, method, password, tag } = outbound;
     if (!server || !server_port || !method || !password) return null;
 
-    const auth = btoa(`${method}:${password}`);
-    const url = `ss://${auth}@${server}:${server_port}#${outbound.tag || "ss"}`;
+    const auth = safeBtoa(`${method}:${password}`);
+    const url = `ss://${auth}@${server}:${server_port}#${encodeURIComponent(tag || "ss")}`;
     return url;
 }
