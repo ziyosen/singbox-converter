@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sing-box Config Converter (Drill)</title>
-    <meta name="description"
-        content="Convert your proxy configs to Sing-box configurations with ease. Supports multiple protocols including VMess, VLESS, Trojan, Hysteria2, and Shadowsocks.">
+    <meta name="description" content="Convert your proxy configs to Sing-box configurations with ease. Supports multiple protocols including VMess, VLESS, Trojan, Hysteria2, and Shadowsocks.">
     <meta name="keywords" content="Sing-box, config converter, proxy, VMess, VLESS, Trojan, Hysteria2, Shadowsocks">
     <meta name="author" content="Anonymous">
     <meta name="robots" content="index, follow">
@@ -27,93 +25,66 @@
     <script src="js/main.js"></script>
     <script src="js/loading.js"></script>
 </head>
-
 <body>
     <div class="loading-screen"></div>
     <div class="terminal-container">
         <div class="terminal-header">
             <div class="terminal-title">Sing-box Config Converter (Drill)</div>
         </div>
-
         <div class="terminal-content">
             <div class="version-info">
                 <div class="badge-container">
-                    <img src="https://img.shields.io/badge/version-1.8.0-blue.svg?cacheSeconds=2592000" alt="Version"
-                        class="badge" />
+                    <img src="https://img.shields.io/badge/version-1.8.0-blue.svg?cacheSeconds=2592000" alt="Version" class="badge" />
                 </div>
                 <div class="badge-container">
                     <a href="https://github.com/4n0nymou3/proxy-to-singbox-converter" target="_blank">
-                        <img src="https://img.shields.io/github/stars/4n0nymou3/proxy-to-singbox-converter?style=social"
-                            alt="GitHub stars" class="badge star-badge">
+                        <img src="https://img.shields.io/github/stars/4n0nymou3/proxy-to-singbox-converter?style=social" alt="GitHub stars" class="badge star-badge">
                     </a>
                 </div>
             </div>
-
             <div class="subscription-card">
-                <p>If you're not familiar with this tool, you can use the subscription link below in the Sing-box
-                    application or clients with Sing-box core. The configurations in this subscription link are updated
-                    every hour:</p>
+                <p>If you're not familiar with this tool, you can use the subscription link below in the Sing-box application or clients with Sing-box core. The configurations in this subscription link are updated every hour:</p>
                 <div class="subscription-input-container">
-                    <input type="text" class="subscription-input"
-                        value="https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/singbox_configs.json"
-                        readonly>
+                    <input type="text" class="subscription-input" value="https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/singbox_configs.json" readonly>
                 </div>
                 <div class="terminal-actions">
                     <button onclick="copySubscriptionLink()" class="glow-button">Copy Subscription Link</button>
                 </div>
             </div>
-
             <div class="terminal-section">
-                <p>Paste your proxy configs, links, or Base64-encoded data. Supports VMess, VLESS, Trojan, Hysteria2,
-                    and Shadowsocks (ss). You can use plain configs, links (http, https, ssconf), or Base64-encoded
-                    configs.</p>
+                <p>Paste your proxy configs, links, or Base64-encoded data. Supports VMess, VLESS, Trojan, Hysteria2, and Shadowsocks (ss). You can use plain configs, links (http, https, ssconf), or Base64-encoded configs.</p>
                 <div class="terminal-actions">
                     <button onclick="pasteFromClipboard()" class="glow-button secondary">Paste from Clipboard</button>
                     <button onclick="pasteFromURL()" class="glow-button secondary">Paste from URL</button>
                     <button onclick="pasteFromFile()" class="glow-button secondary">Paste from File</button>
                 </div>
-                <textarea id="input" class="terminal-textarea"
-                    placeholder="Paste proxy configs, links (http, https, ssconf), or Base64-encoded data here..."></textarea>
+                <textarea id="input" class="terminal-textarea" placeholder="Paste proxy configs, links (http, https, ssconf), or Base64-encoded data here..."></textarea>
             </div>
-
-            <div class="terminal-section">
-                <p>Paste your Sing-box JSON configuration to convert it back to standard proxy configs (VMess, VLESS, Trojan, Hysteria2, Shadowsocks).</p>
-                <textarea id="jsonInput" class="terminal-textarea"
-                    placeholder="Paste Sing-box JSON configuration here..."></textarea>
-            </div>
-
             <div class="terminal-section">
                 <label>
                     <input type="checkbox" id="enableAdBlockAndIran" />
-                    Enable Ad Blocking, Malware Protection, Phishing Prevention, Cryptominer Blocking, and Direct Access
-                    to Iranian Sites without VPN
+                    Enable Ad Blocking, Malware Protection, Phishing Prevention, Cryptominer Blocking, and Direct Access to Iranian Sites without VPN
                 </label>
             </div>
-
             <div class="terminal-actions">
                 <button onclick="convertConfig()" class="glow-button primary">Convert to Sing-box</button>
-                <button onclick="convertJsonToConfig()" class="glow-button primary">Convert JSON to Config</button>
+                <button onclick="reverseConvertConfig()" class="glow-button primary">Convert to Plain</button>
                 <button id="clearButton" onclick="clearAll()" class="glow-button secondary" disabled>Clear</button>
             </div>
-
             <div id="loading" class="loading-container">
                 <div class="terminal-loading"></div>
             </div>
-
             <div id="error" class="terminal-error"></div>
-
             <div class="terminal-section">
-                <h3>Result:</h3>
+                <h3>Sing-box Configuration:</h3>
                 <div id="editor" class="terminal-editor"></div>
             </div>
-
             <div class="terminal-actions">
                 <button onclick="copyToClipboard()" class="glow-button">Copy to Clipboard</button>
                 <button id="downloadButton" onclick="downloadJSON()" class="glow-button" disabled>Download JSON</button>
             </div>
         </div>
     </div>
-
     <div class="terminal-footer">
         Designed by <a href="https://t.me/BXAMbot" target="_blank">Anonymous</a>
     </div>
@@ -123,5 +94,4 @@
         }, 1000);
     </script>
 </body>
-
 </html>
