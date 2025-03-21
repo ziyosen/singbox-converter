@@ -14,8 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     checkInputType();
 });
 
-function checkInputType() {
-    const input = document.getElementById('input').value.trim();
+async function checkInputType() {
+    let input = document.getElementById('input').value.trim();
     const convertButton = document.querySelector('button[onclick="convertConfig()"]');
     const clearButton = document.getElementById('clearButton');
 
@@ -23,6 +23,14 @@ function checkInputType() {
         clearButton.disabled = false;
     } else {
         clearButton.disabled = true;
+    }
+
+    if (isLink(input)) {
+        const content = await fetchContent(input);
+        if (content && isSingboxJSON(content)) {
+            convertButton.textContent = 'Convert to Proxy Configs';
+            return;
+        }
     }
 
     if (isSingboxJSON(input)) {
@@ -93,13 +101,13 @@ async function pasteFromURL() {
 
     try {
         startLoading();
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        const content = await fetchContent(url);
+        if (content) {
+            document.getElementById('input').value = content;
+            await checkInputType();
+        } else {
+            throw new Error('Failed to fetch content from URL');
         }
-        const text = await response.text();
-        document.getElementById('input').value = text;
-        checkInputType();
     } catch (err) {
         alert('Failed to fetch from URL: ' + err.message);
         console.error('Failed to fetch:', err);
