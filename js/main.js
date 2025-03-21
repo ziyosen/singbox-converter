@@ -1,5 +1,4 @@
 let editor;
-
 document.addEventListener('DOMContentLoaded', () => {
     editor = ace.edit("editor");
     editor.setTheme("ace/theme/monokai");
@@ -8,14 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.setOption("wrap", true);
     editor.setShowPrintMargin(false);
 });
-
 function clearAll() {
     document.getElementById('input').value = '';
     editor.setValue('');
     document.getElementById('error').textContent = '';
     document.getElementById('downloadButton').disabled = true;
 }
-
 function copyToClipboard() {
     const content = editor.getValue();
     if (!content) return;
@@ -23,14 +20,12 @@ function copyToClipboard() {
         .then(() => alert('Configuration copied to clipboard!'))
         .catch(err => console.error('Failed to copy:', err));
 }
-
 function copySubscriptionLink() {
     const link = document.querySelector('.subscription-input').value;
     navigator.clipboard.writeText(link)
         .then(() => alert('Subscription link copied to clipboard!'))
         .catch(err => console.error('Failed to copy:', err));
 }
-
 function downloadJSON() {
     const content = editor.getValue();
     if (!content) return;
@@ -44,7 +39,6 @@ function downloadJSON() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
-
 function pasteFromClipboard() {
     try {
         navigator.clipboard.readText()
@@ -60,18 +54,20 @@ function pasteFromClipboard() {
         alert('Please allow clipboard access to paste content');
     }
 }
-
 async function pasteFromURL() {
     const url = prompt('Enter URL:');
     if (!url) return;
-
     try {
         startLoading();
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const text = await response.text();
+        let text = await response.text();
+        try {
+            const json = JSON.parse(text);
+            text = JSON.stringify(json, null, 2);
+        } catch (e) {}
         document.getElementById('input').value = text;
     } catch (err) {
         alert('Failed to fetch from URL: ' + err.message);
@@ -80,19 +76,21 @@ async function pasteFromURL() {
         stopLoading();
     }
 }
-
 function pasteFromFile() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.txt,.json,.yaml,.yml,.conf,.vless,.vmess,.trojan,.hysteria,.ss,.ssr,.vlessconf,.vmessconf,.trojanconf,.hysteriaconf,.ssconf,.ssrconf';
-    
     input.onchange = function(e) {
         const file = e.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById('input').value = e.target.result;
+            let text = e.target.result;
+            try {
+                const json = JSON.parse(text);
+                text = JSON.stringify(json, null, 2);
+            } catch (err) {}
+            document.getElementById('input').value = text;
         };
         reader.onerror = function(e) {
             alert('Error reading file');
@@ -100,6 +98,5 @@ function pasteFromFile() {
         };
         reader.readAsText(file);
     };
-
     input.click();
 }
