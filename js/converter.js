@@ -106,58 +106,102 @@ async function processContent(content) {
     return configs;
 }
 
+function isSingboxJSON(text) {
+    try {
+        const json = JSON.parse(text);
+        return json && typeof json === 'object' && json.outbounds && Array.isArray(json.outbounds);
+    } catch (e) {
+        return false;
+    }
+}
+
+function convertFromJSON(jsonText) {
+    const json = JSON.parse(jsonText);
+    const outbounds = json.outbounds || [];
+    const proxyConfigs = [];
+
+    for (const outbound of outbounds) {
+        if (outbound.type === 'vmess') {
+            const vmessConfig = convertToVmess(outbound);
+            if (vmessConfig) proxyConfigs.push(vmessConfig);
+        } else if (outbound.type === 'vless') {
+            const vlessConfig = convertToVless(outbound);
+            if (vlessConfig) proxyConfigs.push(vlessConfig);
+        } else if (outbound.type === 'trojan') {
+            const trojanConfig = convertToTrojan(outbound);
+            if (trojanConfig) proxyConfigs.push(trojanConfig);
+        } else if (outbound.type === 'hysteria2') {
+            const hysteria2Config = convertToHysteria2(outbound);
+            if (hysteria2Config) proxyConfigs.push(hysteria2Config);
+        } else if (outbound.type === 'shadowsocks') {
+            const ssConfig = convertToShadowsocks(outbound);
+            if (ssConfig) proxyConfigs.push(ssConfig);
+        }
+    }
+
+    return proxyConfigs;
+}
+
 async function convertConfig() {
     const input = document.getElementById('input').value.trim();
     const errorDiv = document.getElementById('error');
     const enableAdBlockAndIran = document.getElementById('enableAdBlockAndIran').checked;
-    
+
     if (!input) {
-        errorDiv.textContent = 'Please enter proxy configurations';
+        errorDiv.textContent = 'Please enter proxy configurations or Sing-box JSON';
         return;
     }
-    
+
     startLoading();
-    
+
     try {
-        const configs = await extractStandardConfigs(input);
-        const outbounds = [];
-        const validTags = [];
-        
-        for (const config of configs) {
-            let converted;
-            try {
-                if (config.startsWith('vmess://')) {
-                    converted = convertVmess(config);
-                } else if (config.startsWith('vless://')) {
-                    converted = convertVless(config);
-                } else if (config.startsWith('trojan://')) {
-                    converted = convertTrojan(config);
-                } else if (config.startsWith('hysteria2://') || config.startsWith('hy2://')) {
-                    converted = convertHysteria2(config);
-                } else if (config.startsWith('ss://')) {
-                    converted = convertShadowsocks(config);
+        if (isSingboxJSON(input)) {
+            const proxyConfigs = convertFromJSON(input);
+            editor.setValue(proxyConfigs.join('\n'));
+            editor.clearSelection();
+            errorDiv.textContent = '';
+            document.getElementById('downloadButton').disabled = false;
+        } else {
+            const configs = await extractStandardConfigs(input);
+            const outbounds = [];
+            const validTags = [];
+
+            for (const config of configs) {
+                let converted;
+                try {
+                    if (config.startsWith('vmess://')) {
+                        converted = convertVmess(config);
+                    } else if (config.startsWith('vless://')) {
+                        converted = convertVless(config);
+                    } else if (config.startsWith('trojan://')) {
+                        converted = convertTrojan(config);
+                    } else if (config.startsWith('hysteria2://') || config.startsWith('hy2://')) {
+                        converted = convertHysteria2(config);
+                    } else if (config.startsWith('ss://')) {
+                        converted = convertShadowsocks(config);
+                    }
+                } catch (e) {
+                    console.error(`Failed to convert config: ${config}`, e);
+                    continue;
                 }
-            } catch (e) {
-                console.error(`Failed to convert config: ${config}`, e);
-                continue;
+
+                if (converted) {
+                    outbounds.push(converted);
+                    validTags.push(converted.tag);
+                }
             }
-            
-            if (converted) {
-                outbounds.push(converted);
-                validTags.push(converted.tag);
+
+            if (outbounds.length === 0) {
+                throw new Error('No valid configurations found');
             }
+
+            const singboxConfig = enableAdBlockAndIran ? createEnhancedSingboxConfig(outbounds, validTags) : createSingboxConfig(outbounds, validTags);
+            const jsonString = JSON.stringify(singboxConfig, null, 2);
+            editor.setValue(jsonString);
+            editor.clearSelection();
+            errorDiv.textContent = '';
+            document.getElementById('downloadButton').disabled = false;
         }
-        
-        if (outbounds.length === 0) {
-            throw new Error('No valid configurations found');
-        }
-        
-        const singboxConfig = enableAdBlockAndIran ? createEnhancedSingboxConfig(outbounds, validTags) : createSingboxConfig(outbounds, validTags);
-        const jsonString = JSON.stringify(singboxConfig, null, 2);
-        editor.setValue(jsonString);
-        editor.clearSelection();
-        errorDiv.textContent = '';
-        document.getElementById('downloadButton').disabled = false;
     } catch (error) {
         errorDiv.textContent = error.message;
         editor.setValue('');
