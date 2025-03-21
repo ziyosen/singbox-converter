@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function checkInputType() {
     let input = document.getElementById('input').value.trim();
     const convertButton = document.querySelector('button[onclick="convertConfig()"]');
+    const downloadButton = document.getElementById('downloadButton');
     const clearButton = document.getElementById('clearButton');
 
     if (input) {
@@ -28,15 +29,16 @@ async function checkInputType() {
     if (isLink(input)) {
         const content = await fetchContent(input);
         if (content && isSingboxJSON(content)) {
-            convertButton.textContent = 'Convert to Proxy Configs';
-            return;
+            input = content;
         }
     }
 
     if (isSingboxJSON(input)) {
         convertButton.textContent = 'Convert to Proxy Configs';
+        downloadButton.textContent = 'Download TXT';
     } else {
         convertButton.textContent = 'Convert to Sing-box';
+        downloadButton.textContent = 'Download JSON';
     }
 }
 
@@ -46,7 +48,9 @@ function clearAll() {
     document.getElementById('error').textContent = '';
     document.getElementById('downloadButton').disabled = true;
     const convertButton = document.querySelector('button[onclick="convertConfig()"]');
+    const downloadButton = document.getElementById('downloadButton');
     convertButton.textContent = 'Convert to Sing-box';
+    downloadButton.textContent = 'Download JSON';
 }
 
 function copyToClipboard() {
@@ -64,14 +68,16 @@ function copySubscriptionLink() {
         .catch(err => console.error('Failed to copy:', err));
 }
 
-function downloadJSON() {
+function downloadFile() {
     const content = editor.getValue();
     if (!content) return;
-    const blob = new Blob([content], { type: 'application/json' });
+    const downloadButton = document.getElementById('downloadButton');
+    const fileType = downloadButton.textContent.includes('TXT') ? 'txt' : 'json';
+    const blob = new Blob([content], { type: `application/${fileType}` });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'singbox-config.json';
+    a.download = `config.${fileType}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
