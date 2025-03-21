@@ -143,7 +143,7 @@ function convertFromJSON(jsonText) {
 }
 
 async function convertConfig() {
-    const input = document.getElementById('input').value.trim();
+    let input = document.getElementById('input').value.trim();
     const errorDiv = document.getElementById('error');
     const enableAdBlockAndIran = document.getElementById('enableAdBlockAndIran').checked;
 
@@ -155,6 +155,13 @@ async function convertConfig() {
     startLoading();
 
     try {
+        if (isLink(input)) {
+            const content = await fetchContent(input);
+            if (content && isSingboxJSON(content)) {
+                input = content;
+            }
+        }
+
         if (isSingboxJSON(input)) {
             const proxyConfigs = convertFromJSON(input);
             editor.setValue(proxyConfigs.join('\n'));
