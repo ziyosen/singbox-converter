@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     input.addEventListener('input', checkInputType);
 
     checkInputType();
+
+    const downloadButton = document.getElementById('downloadButton');
+    downloadButton.addEventListener('click', downloadFile);
 });
 
 async function checkInputType() {
@@ -24,6 +27,7 @@ async function checkInputType() {
         clearButton.disabled = false;
     } else {
         clearButton.disabled = true;
+        downloadButton.disabled = true;
     }
 
     if (isLink(input)) {
@@ -72,8 +76,8 @@ function downloadFile() {
     const content = editor.getValue();
     if (!content) return;
     const downloadButton = document.getElementById('downloadButton');
-    const fileType = downloadButton.textContent.includes('TXT') ? 'txt' : 'json';
-    const blob = new Blob([content], { type: `application/${fileType}` });
+    const fileType = downloadButton.textContent === 'Download TXT' ? 'txt' : 'json';
+    const blob = new Blob([content], { type: `text/${fileType}` });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
