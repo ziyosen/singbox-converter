@@ -7,13 +7,38 @@ document.addEventListener('DOMContentLoaded', () => {
     editor.setReadOnly(true);
     editor.setOption("wrap", true);
     editor.setShowPrintMargin(false);
+
+    const input = document.getElementById('input');
+    input.addEventListener('input', checkInputType);
+
+    checkInputType();
 });
+
+function checkInputType() {
+    const input = document.getElementById('input').value.trim();
+    const convertButton = document.querySelector('button[onclick="convertConfig()"]');
+    const clearButton = document.getElementById('clearButton');
+
+    if (input) {
+        clearButton.disabled = false;
+    } else {
+        clearButton.disabled = true;
+    }
+
+    if (isSingboxJSON(input)) {
+        convertButton.textContent = 'Convert to Proxy Configs';
+    } else {
+        convertButton.textContent = 'Convert to Sing-box';
+    }
+}
 
 function clearAll() {
     document.getElementById('input').value = '';
     editor.setValue('');
     document.getElementById('error').textContent = '';
     document.getElementById('downloadButton').disabled = true;
+    const convertButton = document.querySelector('button[onclick="convertConfig()"]');
+    convertButton.textContent = 'Convert to Sing-box';
 }
 
 function copyToClipboard() {
@@ -50,6 +75,7 @@ function pasteFromClipboard() {
         navigator.clipboard.readText()
             .then(text => {
                 document.getElementById('input').value = text;
+                checkInputType();
             })
             .catch(err => {
                 alert('Please allow clipboard access to paste content');
@@ -73,6 +99,7 @@ async function pasteFromURL() {
         }
         const text = await response.text();
         document.getElementById('input').value = text;
+        checkInputType();
     } catch (err) {
         alert('Failed to fetch from URL: ' + err.message);
         console.error('Failed to fetch:', err);
@@ -85,7 +112,7 @@ function pasteFromFile() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.txt,.json,.yaml,.yml,.conf,.vless,.vmess,.trojan,.hysteria,.ss,.ssr,.vlessconf,.vmessconf,.trojanconf,.hysteriaconf,.ssconf,.ssrconf';
-    
+
     input.onchange = function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -93,6 +120,7 @@ function pasteFromFile() {
         const reader = new FileReader();
         reader.onload = function(e) {
             document.getElementById('input').value = e.target.result;
+            checkInputType();
         };
         reader.onerror = function(e) {
             alert('Error reading file');
