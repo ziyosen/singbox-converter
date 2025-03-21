@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sing-box Config Converter (Drill)</title>
-    <meta name="description" content="Convert your proxy configs to Sing-box configurations with ease. Supports multiple protocols including VMess, VLESS, Trojan, Hysteria2, and Shadowsocks.">
+    <meta name="description" content="Convert your proxy configs to Sing-box JSON or reverse convert Sing-box JSON to plain proxy configs with ease. Supports multiple protocols including VMess, VLESS, Trojan, Hysteria2, and Shadowsocks.">
     <meta name="keywords" content="Sing-box, config converter, proxy, VMess, VLESS, Trojan, Hysteria2, Shadowsocks">
     <meta name="author" content="Anonymous">
     <meta name="robots" content="index, follow">
@@ -52,13 +52,13 @@
                 </div>
             </div>
             <div class="terminal-section">
-                <p>Paste your proxy configs, links, or Base64-encoded data. Supports VMess, VLESS, Trojan, Hysteria2, and Shadowsocks (ss). You can use plain configs, links (http, https, ssconf), or Base64-encoded configs.</p>
+                <p>Paste your proxy configs, links, or Base64-encoded data to convert them to Sing-box JSON configuration. Supports VMess, VLESS, Trojan, Hysteria2, and Shadowsocks (ss). Alternatively, paste a Sing-box JSON configuration to reverse convert it to plain proxy configs.</p>
                 <div class="terminal-actions">
                     <button onclick="pasteFromClipboard()" class="glow-button secondary">Paste from Clipboard</button>
                     <button onclick="pasteFromURL()" class="glow-button secondary">Paste from URL</button>
                     <button onclick="pasteFromFile()" class="glow-button secondary">Paste from File</button>
                 </div>
-                <textarea id="input" class="terminal-textarea" placeholder="Paste proxy configs, links (http, https, ssconf), or Base64-encoded data here..."></textarea>
+                <textarea id="input" class="terminal-textarea" placeholder="Paste proxy configs, links (http, https, ssconf), Base64-encoded data, or Sing-box JSON configuration here..."></textarea>
             </div>
             <div class="terminal-section">
                 <label>
@@ -67,8 +67,8 @@
                 </label>
             </div>
             <div class="terminal-actions">
-                <button onclick="convertConfig()" class="glow-button primary">Convert to Sing-box</button>
-                <button onclick="reverseConvertConfig()" class="glow-button primary">Convert to Plain</button>
+                <button onclick="convertConfig()" class="glow-button primary">Convert to Sing-box JSON</button>
+                <button onclick="reverseConvertConfig()" class="glow-button primary">Reverse Convert JSON to Plain Proxy Configs</button>
                 <button id="clearButton" onclick="clearAll()" class="glow-button secondary" disabled>Clear</button>
             </div>
             <div id="loading" class="loading-container">
