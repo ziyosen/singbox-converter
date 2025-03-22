@@ -1,6 +1,6 @@
 {
-  "name": "Proxy to Sing-box Converter",
-  "short_name": "Proxy to Sing-box Converter",
+  "name": "Config Converter",
+  "short_name": "Drill",
   "icons": [
     {
       "src": "/img/android-chrome-192x192.png",
