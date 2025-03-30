@@ -143,11 +143,17 @@ function convertFromJSON(jsonText) {
 }
 
 async function convertConfig() {
+    window.vmessCount = 0;
+    window.vlessCount = 0;
+    window.trojanCount = 0;
+    window.hysteria2Count = 0;
+    window.ssCount = 0;
+
     let input = document.getElementById('input').value.trim();
     const errorDiv = document.getElementById('error');
     const enableAdBlockAndIran = document.getElementById('enableAdBlockAndIran').checked;
     const enableCustomTag = document.getElementById('enableCustomTag').checked;
-    const customTagPrefix = document.getElementById('customTagPrefix').value.trim();
+    const customTagName = document.getElementById('customTagInput').value.trim();
 
     if (!input) {
         errorDiv.textContent = 'Please enter proxy configurations or Sing-box JSON';
@@ -174,38 +180,20 @@ async function convertConfig() {
             const configs = await extractStandardConfigs(input);
             const outbounds = [];
             const validTags = [];
-            const protocolCounters = {
-                vmess: 0,
-                vless: 0,
-                trojan: 0,
-                hysteria2: 0,
-                ss: 0
-            };
 
             for (const config of configs) {
                 let converted;
-                let protocol;
                 try {
                     if (config.startsWith('vmess://')) {
-                        protocol = 'vmess';
-                        protocolCounters[protocol]++;
-                        converted = convertVmess(config, enableCustomTag && customTagPrefix ? customTagPrefix : '', protocolCounters[protocol]);
+                        converted = convertVmess(config, enableCustomTag, customTagName);
                     } else if (config.startsWith('vless://')) {
-                        protocol = 'vless';
-                        protocolCounters[protocol]++;
-                        converted = convertVless(config, enableCustomTag && customTagPrefix ? customTagPrefix : '', protocolCounters[protocol]);
+                        converted = convertVless(config, enableCustomTag, customTagName);
                     } else if (config.startsWith('trojan://')) {
-                        protocol = 'trojan';
-                        protocolCounters[protocol]++;
-                        converted = convertTrojan(config, enableCustomTag && customTagPrefix ? customTagPrefix : '', protocolCounters[protocol]);
+                        converted = convertTrojan(config, enableCustomTag, customTagName);
                     } else if (config.startsWith('hysteria2://') || config.startsWith('hy2://')) {
-                        protocol = 'hysteria2';
-                        protocolCounters[protocol]++;
-                        converted = convertHysteria2(config, enableCustomTag && customTagPrefix ? customTagPrefix : '', protocolCounters[protocol]);
+                        converted = convertHysteria2(config, enableCustomTag, customTagName);
                     } else if (config.startsWith('ss://')) {
-                        protocol = 'ss';
-                        protocolCounters[protocol]++;
-                        converted = convertShadowsocks(config, enableCustomTag && customTagPrefix ? customTagPrefix : '', protocolCounters[protocol]);
+                        converted = convertShadowsocks(config, enableCustomTag, customTagName);
                     }
                 } catch (e) {
                     console.error(`Failed to convert config: ${config}`, e);
