@@ -1,4 +1,4 @@
-function convertVmess(input) {
+function convertVmess(input, enableCustomTag, customTagName) {
     try {
         const data = JSON.parse(atob(input.replace('vmess://', '')));
         if (!data.add || !data.port || !data.id) return null;
@@ -12,7 +12,7 @@ function convertVmess(input) {
         
         return {
             type: "vmess",
-            tag: `vmess-${generateUUID().slice(0, 8)}`,
+            tag: generateTag('vmess', enableCustomTag, customTagName),
             server: data.add,
             server_port: parseInt(data.port),
             uuid: data.id,
@@ -30,7 +30,7 @@ function convertVmess(input) {
     }
 }
 
-function convertVless(input) {
+function convertVless(input, enableCustomTag, customTagName) {
     try {
         const url = new URL(input);
         if (url.protocol.toLowerCase() !== 'vless:' || !url.hostname) return null;
@@ -48,7 +48,7 @@ function convertVless(input) {
         
         return {
             type: "vless",
-            tag: `vless-${generateUUID().slice(0, 8)}`,
+            tag: generateTag('vless', enableCustomTag, customTagName),
             server: address,
             server_port: parseInt(port),
             uuid: url.username,
@@ -65,7 +65,7 @@ function convertVless(input) {
     }
 }
 
-function convertTrojan(input) {
+function convertTrojan(input, enableCustomTag, customTagName) {
     try {
         const url = new URL(input);
         if (url.protocol.toLowerCase() !== 'trojan:' || !url.hostname) return null;
@@ -80,7 +80,7 @@ function convertTrojan(input) {
         
         return {
             type: "trojan",
-            tag: `trojan-${generateUUID().slice(0, 8)}`,
+            tag: generateTag('trojan', enableCustomTag, customTagName),
             server: url.hostname,
             server_port: parseInt(url.port || 443),
             password: url.username,
@@ -97,7 +97,7 @@ function convertTrojan(input) {
     }
 }
 
-function convertHysteria2(input) {
+function convertHysteria2(input, enableCustomTag, customTagName) {
     try {
         const url = new URL(input);
         if (!['hysteria2:', 'hy2:'].includes(url.protocol.toLowerCase()) || !url.hostname || !url.port) return null;
@@ -105,7 +105,7 @@ function convertHysteria2(input) {
         const params = new URLSearchParams(url.search);
         return {
             type: "hysteria2",
-            tag: `hysteria2-${generateUUID().slice(0, 8)}`,
+            tag: generateTag('hysteria2', enableCustomTag, customTagName),
             server: url.hostname,
             server_port: parseInt(url.port),
             password: url.username || params.get('password') || '',
@@ -120,7 +120,7 @@ function convertHysteria2(input) {
     }
 }
 
-function convertShadowsocks(input) {
+function convertShadowsocks(input, enableCustomTag, customTagName) {
     try {
         const ss = input.replace('ss://', '');
         const [serverPart, _] = ss.split('#');
@@ -132,7 +132,7 @@ function convertShadowsocks(input) {
         
         return {
             type: "shadowsocks",
-            tag: `ss-${generateUUID().slice(0, 8)}`,
+            tag: generateTag('ss', enableCustomTag, customTagName),
             server: server,
             server_port: parseInt(port),
             method: method,
