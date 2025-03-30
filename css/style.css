@@ -141,32 +141,43 @@ body {
     align-items: center;
     color: var(--terminal-text);
     font-size: 10px;
+    position: relative;
+    margin-bottom: 8px;
 }
 
 .checkbox-wrapper input[type="checkbox"] {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 1rem;
-    height: 1rem;
+    position: relative;
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
     margin-right: 8px;
-    border: 1px solid var(--terminal-border);
-    border-radius: 2px;
-    background-color: var(--terminal-bg);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
     cursor: pointer;
+    border: 1px solid var(--terminal-border);
+    border-radius: 3px;
+    background-color: var(--terminal-input-bg);
+    vertical-align: middle;
 }
 
 .checkbox-wrapper input[type="checkbox"]:checked {
     background-color: var(--terminal-purple);
     border-color: var(--terminal-purple);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' width='1rem' height='1rem'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z'/%3E%3C/svg%3E");
-    background-size: contain;
 }
 
-@media (max-width: 768px) {
-    .checkbox-wrapper input[type="checkbox"] {
-        width: 1.2rem;
-        height: 1.2rem;
-    }
+.checkbox-wrapper input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
 .terminal-textarea {
@@ -179,7 +190,7 @@ body {
     padding: 15px;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 12px;
-    resize: atical;
+    resize: vertical;
 }
 
 #customTagInput {
@@ -413,8 +424,5 @@ body {
     }
     .glow-button {
         width: 100%;
-    }
-    .checkbox-wrapper {
-        font-size: 10px;
     }
 }
