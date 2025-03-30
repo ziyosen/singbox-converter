@@ -438,3 +438,15 @@ body {
         height: 24px;
     }
 }
+
+#customTagPrefix {
+    width: 100%;
+    background-color: var(--terminal-input-bg);
+    border: 1px solid var(--terminal-border);
+    border-radius: 4px;
+    color: var(--terminal-text);
+    padding: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    margin-top: 10px;
+}
