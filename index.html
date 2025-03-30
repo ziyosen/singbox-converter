@@ -34,7 +34,7 @@
         <div class="terminal-content">
             <div class="version-info">
                 <div class="badge-container">
-                    <img src="https://img.shields.io/badge/version-2.0.0-blue.svg?cacheSeconds=2592000" alt="Version" class="badge" />
+                    <img src="https://img.shields.io/badge/version-1.9.2-blue.svg?cacheSeconds=2592000" alt="Version" class="badge" />
                 </div>
                 <div class="badge-container">
                     <a href="https://github.com/4n0nymou3/proxy-to-singbox-converter" target="_blank">
@@ -61,16 +61,14 @@
                 <textarea id="input" class="terminal-textarea" oninput="checkInputType()" placeholder="Enter proxy configs, links (http, https, ssconf), Base64-encoded data, or Sing-box JSON here..."></textarea>
             </div>
             <div class="terminal-section">
-                <label>
+                <label class="checkbox-wrapper">
                     <input type="checkbox" id="enableCustomTag" onchange="toggleCustomTagInput()" />
                     Enable Custom Tag Name
                 </label>
+                <input type="text" id="customTagInput" class="subscription-input" placeholder="Enter custom tag name (e.g., Ahmad66)" disabled />
             </div>
             <div class="terminal-section">
-                <input type="text" id="customTagInput" class="subscription-input" placeholder="Enter custom tag name (e.g., Anonymous)" disabled />
-            </div>
-            <div class="terminal-section">
-                <label>
+                <label class="checkbox-wrapper">
                     <input type="checkbox" id="enableAdBlockAndIran" />
                     Enable Ad Blocking, Malware Protection, Phishing Prevention, Cryptominer Blocking, and Direct Access to Iranian Sites without VPN
                 </label>
