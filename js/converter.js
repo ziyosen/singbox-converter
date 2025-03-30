@@ -146,6 +146,8 @@ async function convertConfig() {
     let input = document.getElementById('input').value.trim();
     const errorDiv = document.getElementById('error');
     const enableAdBlockAndIran = document.getElementById('enableAdBlockAndIran').checked;
+    const enableCustomTag = document.getElementById('enableCustomTag').checked;
+    const customTagPrefix = document.getElementById('customTagPrefix').value.trim();
 
     if (!input) {
         errorDiv.textContent = 'Please enter proxy configurations or Sing-box JSON';
@@ -172,20 +174,38 @@ async function convertConfig() {
             const configs = await extractStandardConfigs(input);
             const outbounds = [];
             const validTags = [];
+            const protocolCounters = {
+                vmess: 0,
+                vless: 0,
+                trojan: 0,
+                hysteria2: 0,
+                ss: 0
+            };
 
             for (const config of configs) {
                 let converted;
+                let protocol;
                 try {
                     if (config.startsWith('vmess://')) {
-                        converted = convertVmess(config);
+                        protocol = 'vmess';
+                        protocolCounters[protocol]++;
+                        converted = convertVmess(config, enableCustomTag && customTagPrefix ? customTagPrefix : '', protocolCounters[protocol]);
                     } else if (config.startsWith('vless://')) {
-                        converted = convertVless(config);
+                        protocol = 'vless';
+                        protocolCounters[protocol]++;
+                        converted = convertVless(config, enableCustomTag && customTagPrefix ? customTagPrefix : '', protocolCounters[protocol]);
                     } else if (config.startsWith('trojan://')) {
-                        converted = convertTrojan(config);
+                        protocol = 'trojan';
+                        protocolCounters[protocol]++;
+                        converted = convertTrojan(config, enableCustomTag && customTagPrefix ? customTagPrefix : '', protocolCounters[protocol]);
                     } else if (config.startsWith('hysteria2://') || config.startsWith('hy2://')) {
-                        converted = convertHysteria2(config);
+                        protocol = 'hysteria2';
+                        protocolCounters[protocol]++;
+                        converted = convertHysteria2(config, enableCustomTag && customTagPrefix ? customTagPrefix : '', protocolCounters[protocol]);
                     } else if (config.startsWith('ss://')) {
-                        converted = convertShadowsocks(config);
+                        protocol = 'ss';
+                        protocolCounters[protocol]++;
+                        converted = convertShadowsocks(config, enableCustomTag && customTagPrefix ? customTagPrefix : '', protocolCounters[protocol]);
                     }
                 } catch (e) {
                     console.error(`Failed to convert config: ${config}`, e);
