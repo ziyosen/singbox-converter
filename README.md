@@ -92,6 +92,21 @@ If you want to run this project locally on your device (e.g., Linux, macOS, Wind
    ```
    This will load the web application in your default browser, where you can use it normally.
 
+### Stopping the Local Server
+
+If you need to stop the local server without closing the terminal, use one of the following methods:
+
+- Press **`Ctrl + C`** in the terminal where the server is running.
+- If the terminal session is lost, find the server process with:
+  ```sh
+  lsof -i :8080
+  ```
+  Then stop it using:
+  ```sh
+  kill -9 PID
+  ```
+  (Replace `PID` with the actual process ID from the previous command.)
+
 ## 🚀 How to Use
 
 1. Navigate to the web application
