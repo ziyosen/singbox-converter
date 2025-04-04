@@ -52,39 +52,10 @@ function extractConfigsFromText(text) {
     return configs;
 }
 
-async function extractStandardConfigs(input) {
-    const configs = [];
-    const lines = input.split('\n').map(line => line.trim()).filter(line => line);
-
-    for (const line of lines) {
-        if (isLink(line)) {
-            const content = await fetchContent(line);
-            if (content) {
-                const subConfigs = await processContent(content);
-                configs.push(...subConfigs);
-            }
-        } else if (isBase64(line)) {
-            try {
-                const decoded = atob(line);
-                const subConfigs = await processContent(decoded);
-                configs.push(...subConfigs);
-            } catch (e) {
-                console.error('Failed to decode Base64:', e);
-            }
-        } else {
-            const subConfigs = extractConfigsFromText(line);
-            configs.push(...subConfigs);
-        }
-    }
-
-    const allText = input.replace(/\n/g, ' ');
-    const subConfigsFromText = extractConfigsFromText(allText);
-    configs.push(...subConfigsFromText);
-
-    return [...new Set(configs)];
-}
-
 async function processContent(content) {
+    if (isSingboxJSON(content)) {
+        return [content];
+    }
     const configs = [];
     const lines = content.split('\n').map(line => line.trim()).filter(line => line);
 
@@ -102,8 +73,47 @@ async function processContent(content) {
             configs.push(...subConfigs);
         }
     }
-
     return configs;
+}
+
+async function extractStandardConfigs(input) {
+    const configs = [];
+    const lines = input.split('\n').map(line => line.trim()).filter(line => line);
+
+    for (const line of lines) {
+        if (isLink(line)) {
+            const content = await fetchContent(line);
+            if (content) {
+                if (isSingboxJSON(content)) {
+                    configs.push(content);
+                } else {
+                    const subConfigs = await processContent(content);
+                    configs.push(...subConfigs);
+                }
+            }
+        } else if (isBase64(line)) {
+            try {
+                const decoded = atob(line);
+                if (isSingboxJSON(decoded)) {
+                    configs.push(decoded);
+                } else {
+                    const subConfigs = await processContent(decoded);
+                    configs.push(...subConfigs);
+                }
+            } catch (e) {
+                console.error('Failed to decode Base64:', e);
+            }
+        } else {
+            const subConfigs = extractConfigsFromText(line);
+            configs.push(...subConfigs);
+        }
+    }
+
+    const allText = input.replace(/\n/g, ' ');
+    const subConfigsFromText = extractConfigsFromText(allText);
+    configs.push(...subConfigsFromText);
+
+    return [...new Set(configs)];
 }
 
 function isSingboxJSON(text) {
@@ -165,8 +175,12 @@ async function convertConfig() {
     try {
         if (isLink(input)) {
             const content = await fetchContent(input);
-            if (content && isSingboxJSON(content)) {
-                input = content;
+            if (content) {
+                if (isSingboxJSON(content)) {
+                    input = content;
+                } else {
+                    input = await processContent(content);
+                }
             }
         }
 
