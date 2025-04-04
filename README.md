@@ -50,12 +50,47 @@ The converter currently supports the following proxy protocols:
 
 ## 📦 Installation
 
-1. Clone the repository
+### Cloning and Running Locally
+
+If you want to run this project locally on your device (e.g., Linux, macOS, Windows, Termux, or iSH), follow these steps:
+
+1. Clone the repository:
    ```sh
    git clone https://github.com/4n0nymou3/proxy-to-singbox-converter.git
    ```
 
-2. Open `index.html` in your web browser
+2. Navigate to the project directory:
+   ```sh
+   cd proxy-to-singbox-converter
+   ```
+
+3. Start a local HTTP server:
+   
+   - **For Python 3.x Users:**
+     ```sh
+     python -m http.server 8080
+     ```
+   
+   - **For Python 2.x Users:**
+     ```sh
+     python -m SimpleHTTPServer 8080
+     ```
+
+   - **For Termux (Android) Users:** (Ensure Python is installed using `pkg install python`)
+     ```sh
+     python -m http.server 8080
+     ```
+
+   - **For iSH (iOS) Users:** (Ensure Python is installed in Alpine Linux via `apk add python3`)
+     ```sh
+     python3 -m http.server 8080
+     ```
+
+4. Open your web browser and go to:
+   ```
+   http://localhost:8080
+   ```
+   This will load the web application in your default browser, where you can use it normally.
 
 ## 🚀 How to Use
 
