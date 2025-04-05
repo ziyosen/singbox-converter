@@ -15,18 +15,13 @@ async function fetchContent(link) {
         link = link.replace('ssconf://', 'https://');
     }
     try {
-        const response = await fetch(link, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-            }
-        });
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(link)}`;
+        const response = await fetch(proxyUrl);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        let text = await response.text();
-        text = text.trim();
+        const data = await response.json();
+        let text = data.contents.trim();
         if (isBase64(text)) {
             try {
                 text = atob(text);
