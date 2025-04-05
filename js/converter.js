@@ -1,4 +1,9 @@
 const SUPPORTED_PROTOCOLS = ['vmess://', 'vless://', 'trojan://', 'hysteria2://', 'hy2://', 'ss://'];
+const IRANIAN_PROXIES = [
+    'https://api.codebazan.ir/proxy/?url=',
+    'https://iranproxy.edns.ir/fetch/',
+    'https://iproxy.3gu.ir/fetch/'
+];
 
 function isLink(str) {
     return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('ssconf://');
@@ -10,10 +15,17 @@ function isBase64(str) {
     return base64Regex.test(str);
 }
 
+function isIranianOnly(url) {
+    const iranianDomains = ['.ir', 'blogfa.com', 'parsiblog.com', 'mihanblog.com', 'rozblog.com'];
+    return iranianDomains.some(domain => url.includes(domain));
+}
+
 async function fetchContent(link) {
     if (link.startsWith('ssconf://')) {
         link = link.replace('ssconf://', 'https://');
     }
+
+    // Method 1: Direct fetch attempt
     try {
         const response = await fetch(link, {
             headers: {
@@ -37,6 +49,8 @@ async function fetchContent(link) {
         return text;
     } catch (error) {
         console.error(`Failed to fetch ${link} directly:`, error);
+        
+        // Method 2: Try using allorigins.win
         try {
             const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(link)}`;
             const response = await fetch(proxyUrl);
@@ -54,7 +68,49 @@ async function fetchContent(link) {
             }
             return text;
         } catch (proxyError) {
-            console.error(`Failed to fetch ${link} via proxy:`, proxyError);
+            console.error(`Failed to fetch ${link} via allorigins:`, proxyError);
+            
+            // Method 3: Try using Iranian proxies for .ir domains or if other methods fail
+            if (isIranianOnly(link) || true) {
+                for (const iranianProxy of IRANIAN_PROXIES) {
+                    try {
+                        const iranProxyUrl = `${iranianProxy}${encodeURIComponent(link)}`;
+                        const response = await fetch(iranProxyUrl);
+                        if (!response.ok) {
+                            continue;
+                        }
+                        
+                        let text;
+                        try {
+                            // Some Iranian proxies might return JSON
+                            const contentType = response.headers.get('content-type');
+                            if (contentType && contentType.includes('application/json')) {
+                                const data = await response.json();
+                                text = data.contents || data.result || data.data || data.response || '';
+                            } else {
+                                text = await response.text();
+                            }
+                        } catch (e) {
+                            text = await response.text();
+                        }
+                        
+                        text = text.trim();
+                        if (isBase64(text)) {
+                            try {
+                                text = atob(text);
+                            } catch (e) {
+                                console.error(`Failed to decode Base64 from ${link} via Iranian proxy:`, e);
+                            }
+                        }
+                        return text;
+                    } catch (iranProxyError) {
+                        console.error(`Failed to fetch ${link} via Iranian proxy ${iranianProxy}:`, iranProxyError);
+                        continue;
+                    }
+                }
+            }
+            
+            console.error(`All proxy attempts failed for ${link}`);
             return null;
         }
     }
