@@ -1,9 +1,11 @@
 const SUPPORTED_PROTOCOLS = ['vmess://', 'vless://', 'trojan://', 'hysteria2://', 'hy2://', 'ss://'];
-const IRAN_PROXY_SERVICES = [
-    'https://api.codetabs.com/v1/proxy?quest=',
-    'https://cors-anywhere.up.railway.app/',
+const CORS_PROXIES = [
+    'https://api.allorigins.win/get?url=',
     'https://corsproxy.io/?',
-    'https://proxy.iranproxy.workers.dev/?url='
+    'https://cors-anywhere.herokuapp.com/',
+    'https://api.codetabs.com/v1/proxy?quest=',
+    'https://cors-proxy.htmldriven.com/?url=',
+    'https://thingproxy.freeboard.io/fetch/'
 ];
 
 function isLink(str) {
@@ -16,26 +18,19 @@ function isBase64(str) {
     return base64Regex.test(str);
 }
 
-function isIranRestrictedURL(url) {
-    const iranDomains = ['.ir', '.ac.ir', '.co.ir', '.gov.ir', '.org.ir', '.sch.ir'];
-    return iranDomains.some(domain => url.includes(domain));
-}
-
 async function fetchContent(link) {
     if (link.startsWith('ssconf://')) {
         link = link.replace('ssconf://', 'https://');
     }
     
-    const headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Referer': 'https://google.com/'
-    };
-    
-    // Step 1: Try direct fetch
     try {
-        const response = await fetch(link, { headers });
+        const response = await fetch(link, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+            }
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -52,54 +47,51 @@ async function fetchContent(link) {
     } catch (error) {
         console.error(`Failed to fetch ${link} directly:`, error);
         
-        // Step 2: Try with allorigins proxy
-        try {
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(link)}`;
-            const response = await fetch(proxyUrl);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            let text = data.contents.trim();
-            if (isBase64(text)) {
-                try {
-                    text = atob(text);
-                } catch (e) {
-                    console.error(`Failed to decode Base64 from ${link} via proxy:`, e);
-                }
-            }
-            return text;
-        } catch (proxyError) {
-            console.error(`Failed to fetch ${link} via allorigins proxy:`, proxyError);
-            
-            // Step 3: Try with Iran IP proxies if the URL seems to be Iran-restricted
-            if (isIranRestrictedURL(link)) {
-                for (const proxyService of IRAN_PROXY_SERVICES) {
-                    try {
-                        const iranProxyUrl = `${proxyService}${encodeURIComponent(link)}`;
-                        const response = await fetch(iranProxyUrl, { headers });
-                        if (!response.ok) {
-                            continue;
-                        }
-                        let text = await response.text();
-                        text = text.trim();
-                        if (isBase64(text)) {
-                            try {
-                                text = atob(text);
-                            } catch (e) {
-                                console.error(`Failed to decode Base64 from ${link} via Iran proxy:`, e);
-                            }
-                        }
-                        return text;
-                    } catch (iranProxyError) {
-                        console.error(`Failed to fetch ${link} via Iran proxy ${proxyService}:`, iranProxyError);
+        for (const proxyUrl of CORS_PROXIES) {
+            try {
+                let fullProxyUrl;
+                
+                if (proxyUrl === CORS_PROXIES[0]) {
+                    fullProxyUrl = `${proxyUrl}${encodeURIComponent(link)}`;
+                    const response = await fetch(fullProxyUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error with ${proxyUrl}! status: ${response.status}`);
                     }
+                    const data = await response.json();
+                    let text = data.contents.trim();
+                    if (isBase64(text)) {
+                        try {
+                            text = atob(text);
+                        } catch (e) {
+                            console.error(`Failed to decode Base64 from ${link} via ${proxyUrl}:`, e);
+                        }
+                    }
+                    return text;
+                } else {
+                    fullProxyUrl = `${proxyUrl}${encodeURIComponent(link)}`;
+                    const response = await fetch(fullProxyUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error with ${proxyUrl}! status: ${response.status}`);
+                    }
+                    let text = await response.text();
+                    text = text.trim();
+                    if (isBase64(text)) {
+                        try {
+                            text = atob(text);
+                        } catch (e) {
+                            console.error(`Failed to decode Base64 from ${link} via ${proxyUrl}:`, e);
+                        }
+                    }
+                    return text;
                 }
+            } catch (proxyError) {
+                console.error(`Failed to fetch ${link} via ${proxyUrl}:`, proxyError);
+                continue;
             }
-            
-            // If all proxies failed
-            return null;
         }
+        
+        console.error(`All proxy attempts failed for ${link}`);
+        return null;
     }
 }
 
