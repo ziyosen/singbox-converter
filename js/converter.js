@@ -1,9 +1,4 @@
 const SUPPORTED_PROTOCOLS = ['vmess://', 'vless://', 'trojan://', 'hysteria2://', 'hy2://', 'ss://'];
-const IRANIAN_PROXIES = [
-    'https://api.codebazan.ir/proxy/?url=',
-    'https://iranproxy.edns.ir/fetch/',
-    'https://iproxy.3gu.ir/fetch/'
-];
 
 function isLink(str) {
     return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('ssconf://');
@@ -15,24 +10,22 @@ function isBase64(str) {
     return base64Regex.test(str);
 }
 
-function isIranianOnly(url) {
-    const iranianDomains = ['.ir', 'blogfa.com', 'parsiblog.com', 'mihanblog.com', 'rozblog.com'];
-    return iranianDomains.some(domain => url.includes(domain));
-}
-
 async function fetchContent(link) {
     if (link.startsWith('ssconf://')) {
         link = link.replace('ssconf://', 'https://');
     }
-
-    // Method 1: Direct fetch attempt
+    
+    // Method 1: Direct browser fetch
     try {
         const response = await fetch(link, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5',
-            }
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            cache: 'no-store'
         });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -50,7 +43,7 @@ async function fetchContent(link) {
     } catch (error) {
         console.error(`Failed to fetch ${link} directly:`, error);
         
-        // Method 2: Try using allorigins.win
+        // Method 2: Try with allorigins proxy
         try {
             const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(link)}`;
             const response = await fetch(proxyUrl);
@@ -68,50 +61,73 @@ async function fetchContent(link) {
             }
             return text;
         } catch (proxyError) {
-            console.error(`Failed to fetch ${link} via allorigins:`, proxyError);
+            console.error(`Failed to fetch ${link} via allorigins proxy:`, proxyError);
             
-            // Method 3: Try using Iranian proxies for .ir domains or if other methods fail
-            if (isIranianOnly(link) || true) {
-                for (const iranianProxy of IRANIAN_PROXIES) {
+            // Method 3: Try with Iranian IP proxies
+            try {
+                // Try with cors-proxy.fringe.zone which sometimes has Iranian IP
+                const iranProxyUrl = `https://cors-proxy.fringe.zone/cors/?${encodeURIComponent(link)}`;
+                const iranResponse = await fetch(iranProxyUrl);
+                if (!iranResponse.ok) {
+                    throw new Error(`HTTP error with Iranian proxy! status: ${iranResponse.status}`);
+                }
+                let iranText = await iranResponse.text();
+                iranText = iranText.trim();
+                if (isBase64(iranText)) {
                     try {
-                        const iranProxyUrl = `${iranianProxy}${encodeURIComponent(link)}`;
-                        const response = await fetch(iranProxyUrl);
-                        if (!response.ok) {
-                            continue;
-                        }
-                        
-                        let text;
+                        iranText = atob(iranText);
+                    } catch (e) {
+                        console.error(`Failed to decode Base64 from ${link} via Iranian proxy:`, e);
+                    }
+                }
+                return iranText;
+            } catch (iranProxyError) {
+                console.error(`Failed to fetch ${link} via Iranian proxy:`, iranProxyError);
+                
+                // Try with alternative Iranian proxy methods
+                try {
+                    // Using jsonp.ro as another alternative
+                    const altProxyUrl = `https://jsonp.ro/${encodeURIComponent(link)}`;
+                    const altResponse = await fetch(altProxyUrl);
+                    if (!altResponse.ok) {
+                        throw new Error(`HTTP error with alternative proxy! status: ${altResponse.status}`);
+                    }
+                    let altText = await altResponse.text();
+                    altText = altText.trim();
+                    if (isBase64(altText)) {
                         try {
-                            // Some Iranian proxies might return JSON
-                            const contentType = response.headers.get('content-type');
-                            if (contentType && contentType.includes('application/json')) {
-                                const data = await response.json();
-                                text = data.contents || data.result || data.data || data.response || '';
-                            } else {
-                                text = await response.text();
-                            }
+                            altText = atob(altText);
                         } catch (e) {
-                            text = await response.text();
+                            console.error(`Failed to decode Base64 from ${link} via alternative proxy:`, e);
                         }
-                        
-                        text = text.trim();
-                        if (isBase64(text)) {
+                    }
+                    return altText;
+                } catch (altProxyError) {
+                    console.error(`Failed to fetch ${link} via alternative proxy:`, altProxyError);
+                    
+                    // Last resort: try using a public CORS bypass service
+                    try {
+                        const corsAnywhereUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`;
+                        const corsResponse = await fetch(corsAnywhereUrl);
+                        if (!corsResponse.ok) {
+                            throw new Error(`HTTP error with CORS proxy! status: ${corsResponse.status}`);
+                        }
+                        let corsText = await corsResponse.text();
+                        corsText = corsText.trim();
+                        if (isBase64(corsText)) {
                             try {
-                                text = atob(text);
+                                corsText = atob(corsText);
                             } catch (e) {
-                                console.error(`Failed to decode Base64 from ${link} via Iranian proxy:`, e);
+                                console.error(`Failed to decode Base64 from ${link} via CORS proxy:`, e);
                             }
                         }
-                        return text;
-                    } catch (iranProxyError) {
-                        console.error(`Failed to fetch ${link} via Iranian proxy ${iranianProxy}:`, iranProxyError);
-                        continue;
+                        return corsText;
+                    } catch (corsProxyError) {
+                        console.error(`All fetch methods failed for ${link}:`, corsProxyError);
+                        return null;
                     }
                 }
             }
-            
-            console.error(`All proxy attempts failed for ${link}`);
-            return null;
         }
     }
 }
