@@ -15,13 +15,18 @@ async function fetchContent(link) {
         link = link.replace('ssconf://', 'https://');
     }
     try {
-        const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(link)}`;
-        const response = await fetch(allOriginsUrl);
+        const response = await fetch(link, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+            }
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-        let text = data.contents.trim();
+        let text = await response.text();
+        text = text.trim();
         if (isBase64(text)) {
             try {
                 text = atob(text);
@@ -31,12 +36,12 @@ async function fetchContent(link) {
         }
         return text;
     } catch (error) {
-        console.error(`AllOrigins fetch failed for ${link}:`, error);
+        console.error(`Failed to fetch ${link} directly:`, error);
         try {
-            const proxyUrl = `https://proxy.webshare.io/proxy?key=free&country=IR&url=${encodeURIComponent(link)}`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(link)}`;
             const response = await fetch(proxyUrl);
             if (!response.ok) {
-                throw new Error(`Proxy fetch failed! status: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
             let text = data.contents.trim();
@@ -44,12 +49,12 @@ async function fetchContent(link) {
                 try {
                     text = atob(text);
                 } catch (e) {
-                    console.error(`Failed to decode Base64 from proxy for ${link}:`, e);
+                    console.error(`Failed to decode Base64 from ${link} via proxy:`, e);
                 }
             }
             return text;
         } catch (proxyError) {
-            console.error(`Proxy fetch failed for ${link}:`, proxyError);
+            console.error(`Failed to fetch ${link} via proxy:`, proxyError);
             return null;
         }
     }
