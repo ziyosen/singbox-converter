@@ -14,13 +14,14 @@ async function fetchContent(link) {
   if (link.startsWith('ssconf://')) {
     link = link.replace('ssconf://', 'https://');
   }
+  const proxyUrl = 'https://api.allorigins.hexocode.repl.co/get?disableCache=true&url=';
   try {
-    const response = await fetch(link, { mode: 'cors' });
+    const response = await fetch(proxyUrl + encodeURIComponent(link));
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    let text = await response.text();
-    text = text.trim();
+    const data = await response.json();
+    let text = data.contents.trim();
     if (isBase64(text)) {
       try {
         text = atob(text);
@@ -122,19 +123,19 @@ function convertFromJSON(jsonText) {
   const proxyConfigs = [];
   for (const outbound of outbounds) {
     if (outbound.type === 'vmess') {
-      const vmessConfig = convertToVmess(outbound);
+      const vmessConfig = convertVmess(outbound);
       if (vmessConfig) proxyConfigs.push(vmessConfig);
     } else if (outbound.type === 'vless') {
-      const vlessConfig = convertToVless(outbound);
+      const vlessConfig = convertVless(outbound);
       if (vlessConfig) proxyConfigs.push(vlessConfig);
     } else if (outbound.type === 'trojan') {
-      const trojanConfig = convertToTrojan(outbound);
+      const trojanConfig = convertTrojan(outbound);
       if (trojanConfig) proxyConfigs.push(trojanConfig);
     } else if (outbound.type === 'hysteria2') {
-      const hysteria2Config = convertToHysteria2(outbound);
+      const hysteria2Config = convertHysteria2(outbound);
       if (hysteria2Config) proxyConfigs.push(hysteria2Config);
     } else if (outbound.type === 'shadowsocks') {
-      const ssConfig = convertToShadowsocks(outbound);
+      const ssConfig = convertShadowsocks(outbound);
       if (ssConfig) proxyConfigs.push(ssConfig);
     }
   }
