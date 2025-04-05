@@ -1,641 +1,501 @@
 const SUPPORTED_PROTOCOLS = ['vmess://', 'vless://', 'trojan://', 'hysteria2://', 'hy2://', 'ss://'];
 
 function isLink(str) {
-  return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('ssconf://');
+    return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('ssconf://');
 }
 
 function isBase64(str) {
-  if (!str || str.length % 4 !== 0) return false;
-  const base64Regex = /^[A-Za-z0-9+/=]+$/;
-  return base64Regex.test(str);
+    if (!str || str.length % 4 !== 0) return false;
+    const base64Regex = /^[A-Za-z0-9+/=]+$/;
+    return base64Regex.test(str);
 }
 
 async function fetchContent(link) {
-  if (link.startsWith('ssconf://')) {
-    link = link.replace('ssconf://', 'https://');
-  }
-  const proxyUrl = 'https://api.allorigins.hexocode.repl.co/get?disableCache=true&url=';
-  try {
-    const response = await fetch(proxyUrl + encodeURIComponent(link));
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (link.startsWith('ssconf://')) {
+        link = link.replace('ssconf://', 'https://');
     }
-    const data = await response.json();
-    let text = data.contents.trim();
-    if (isBase64(text)) {
-      try {
-        text = atob(text);
-      } catch (e) {
-        console.error(`Failed to decode Base64 from ${link}:`, e);
-      }
+    try {
+        const response = await fetch(link, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        let text = await response.text();
+        text = text.trim();
+        if (isBase64(text)) {
+            try {
+                text = atob(text);
+            } catch (e) {
+                console.error(`Failed to decode Base64 from ${link}:`, e);
+            }
+        }
+        return text;
+    } catch (error) {
+        console.error(`Failed to fetch ${link}:`, error);
+        return null;
     }
-    return text;
-  } catch (error) {
-    console.error(`Failed to fetch ${link}:`, error);
-    return null;
-  }
 }
 
 function extractConfigsFromText(text) {
-  const configs = [];
-  const protocolPatterns = SUPPORTED_PROTOCOLS.map(protocol => ({
-    protocol,
-    regex: new RegExp(`(${protocol}[^\\s]+)`, 'g')
-  }));
-  for (const { regex } of protocolPatterns) {
-    const matches = text.match(regex);
-    if (matches) {
-      configs.push(...matches);
+    const configs = [];
+    const protocolPatterns = SUPPORTED_PROTOCOLS.map(protocol => ({
+        protocol,
+        regex: new RegExp(`(${protocol}[^\\s]+)`, 'g')
+    }));
+
+    for (const { regex } of protocolPatterns) {
+        const matches = text.match(regex);
+        if (matches) {
+            configs.push(...matches);
+        }
     }
-  }
-  return configs;
+
+    return configs;
 }
 
 async function extractStandardConfigs(input) {
-  const configs = [];
-  const lines = input.split('\n').map(line => line.trim()).filter(line => line);
-  for (const line of lines) {
-    if (isLink(line)) {
-      const content = await fetchContent(line);
-      if (content) {
-        const subConfigs = await processContent(content);
-        configs.push(...subConfigs);
-      }
-    } else if (isBase64(line)) {
-      try {
-        const decoded = atob(line);
-        const subConfigs = await processContent(decoded);
-        configs.push(...subConfigs);
-      } catch (e) {
-        console.error('Failed to decode Base64:', e);
-      }
-    } else {
-      const subConfigs = extractConfigsFromText(line);
-      configs.push(...subConfigs);
+    const configs = [];
+    const lines = input.split('\n').map(line => line.trim()).filter(line => line);
+
+    for (const line of lines) {
+        if (isLink(line)) {
+            const content = await fetchContent(line);
+            if (content) {
+                const subConfigs = await processContent(content);
+                configs.push(...subConfigs);
+            }
+        } else if (isBase64(line)) {
+            try {
+                const decoded = atob(line);
+                const subConfigs = await processContent(decoded);
+                configs.push(...subConfigs);
+            } catch (e) {
+                console.error('Failed to decode Base64:', e);
+            }
+        } else {
+            const subConfigs = extractConfigsFromText(line);
+            configs.push(...subConfigs);
+        }
     }
-  }
-  const allText = input.replace(/\n/g, ' ');
-  const subConfigsFromText = extractConfigsFromText(allText);
-  configs.push(...subConfigsFromText);
-  return [...new Set(configs)];
+
+    const allText = input.replace(/\n/g, ' ');
+    const subConfigsFromText = extractConfigsFromText(allText);
+    configs.push(...subConfigsFromText);
+
+    return [...new Set(configs)];
 }
 
 async function processContent(content) {
-  const configs = [];
-  const lines = content.split('\n').map(line => line.trim()).filter(line => line);
-  for (const line of lines) {
-    if (isBase64(line)) {
-      try {
-        const decoded = atob(line);
-        const subConfigs = extractConfigsFromText(decoded);
-        configs.push(...subConfigs);
-      } catch (e) {
-        console.error('Failed to decode nested Base64:', e);
-      }
-    } else {
-      const subConfigs = extractConfigsFromText(line);
-      configs.push(...subConfigs);
+    const configs = [];
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+
+    for (const line of lines) {
+        if (isBase64(line)) {
+            try {
+                const decoded = atob(line);
+                const subConfigs = extractConfigsFromText(decoded);
+                configs.push(...subConfigs);
+            } catch (e) {
+                console.error('Failed to decode nested Base64:', e);
+            }
+        } else {
+            const subConfigs = extractConfigsFromText(line);
+            configs.push(...subConfigs);
+        }
     }
-  }
-  return configs;
+
+    return configs;
 }
 
 function isSingboxJSON(text) {
-  try {
-    let jsonText = text.trim();
-    if (!jsonText.startsWith('{')) {
-      const start = jsonText.indexOf('{');
-      const end = jsonText.lastIndexOf('}');
-      if (start !== -1 && end !== -1) {
-        jsonText = jsonText.substring(start, end + 1);
-      }
+    try {
+        const json = JSON.parse(text);
+        return json && typeof json === 'object' && json.outbounds && Array.isArray(json.outbounds);
+    } catch (e) {
+        return false;
     }
-    const json = JSON.parse(jsonText);
-    return json && typeof json === 'object' && Array.isArray(json.outbounds);
-  } catch (e) {
-    return false;
-  }
 }
 
 function convertFromJSON(jsonText) {
-  const json = JSON.parse(jsonText);
-  const outbounds = json.outbounds || [];
-  const proxyConfigs = [];
-  for (const outbound of outbounds) {
-    if (outbound.type === 'vmess') {
-      const vmessConfig = convertVmess(outbound);
-      if (vmessConfig) proxyConfigs.push(vmessConfig);
-    } else if (outbound.type === 'vless') {
-      const vlessConfig = convertVless(outbound);
-      if (vlessConfig) proxyConfigs.push(vlessConfig);
-    } else if (outbound.type === 'trojan') {
-      const trojanConfig = convertTrojan(outbound);
-      if (trojanConfig) proxyConfigs.push(trojanConfig);
-    } else if (outbound.type === 'hysteria2') {
-      const hysteria2Config = convertHysteria2(outbound);
-      if (hysteria2Config) proxyConfigs.push(hysteria2Config);
-    } else if (outbound.type === 'shadowsocks') {
-      const ssConfig = convertShadowsocks(outbound);
-      if (ssConfig) proxyConfigs.push(ssConfig);
+    const json = JSON.parse(jsonText);
+    const outbounds = json.outbounds || [];
+    const proxyConfigs = [];
+
+    for (const outbound of outbounds) {
+        if (outbound.type === 'vmess') {
+            const vmessConfig = convertToVmess(outbound);
+            if (vmessConfig) proxyConfigs.push(vmessConfig);
+        } else if (outbound.type === 'vless') {
+            const vlessConfig = convertToVless(outbound);
+            if (vlessConfig) proxyConfigs.push(vlessConfig);
+        } else if (outbound.type === 'trojan') {
+            const trojanConfig = convertToTrojan(outbound);
+            if (trojanConfig) proxyConfigs.push(trojanConfig);
+        } else if (outbound.type === 'hysteria2') {
+            const hysteria2Config = convertToHysteria2(outbound);
+            if (hysteria2Config) proxyConfigs.push(hysteria2Config);
+        } else if (outbound.type === 'shadowsocks') {
+            const ssConfig = convertToShadowsocks(outbound);
+            if (ssConfig) proxyConfigs.push(ssConfig);
+        }
     }
-  }
-  return proxyConfigs;
+
+    return proxyConfigs;
 }
 
 async function convertConfig() {
-  window.vmessCount = 0;
-  window.vlessCount = 0;
-  window.trojanCount = 0;
-  window.hysteria2Count = 0;
-  window.ssCount = 0;
-  let input = document.getElementById('input').value.trim();
-  const errorDiv = document.getElementById('error');
-  const enableAdBlockAndIran = document.getElementById('enableAdBlockAndIran').checked;
-  const enableCustomTag = document.getElementById('enableCustomTag').checked;
-  const customTagName = document.getElementById('customTagInput').value.trim();
-  if (!input) {
-    errorDiv.textContent = 'Please enter proxy configurations or Sing-box JSON';
-    return;
-  }
-  startLoading();
-  try {
-    if (isLink(input)) {
-      const content = await fetchContent(input);
-      if (content && isSingboxJSON(content)) {
-        input = content;
-      }
+    window.vmessCount = 0;
+    window.vlessCount = 0;
+    window.trojanCount = 0;
+    window.hysteria2Count = 0;
+    window.ssCount = 0;
+
+    let input = document.getElementById('input').value.trim();
+    const errorDiv = document.getElementById('error');
+    const enableAdBlockAndIran = document.getElementById('enableAdBlockAndIran').checked;
+    const enableCustomTag = document.getElementById('enableCustomTag').checked;
+    const customTagName = document.getElementById('customTagInput').value.trim();
+
+    if (!input) {
+        errorDiv.textContent = 'Please enter proxy configurations or Sing-box JSON';
+        return;
     }
-    if (isSingboxJSON(input)) {
-      const proxyConfigs = convertFromJSON(input);
-      editor.setValue(proxyConfigs.join('\n'));
-      editor.clearSelection();
-      errorDiv.textContent = '';
-      document.getElementById('downloadButton').disabled = false;
-    } else {
-      const configs = await extractStandardConfigs(input);
-      const outbounds = [];
-      const validTags = [];
-      for (const config of configs) {
-        let converted;
-        try {
-          if (config.startsWith('vmess://')) {
-            converted = convertVmess(config, enableCustomTag, customTagName);
-          } else if (config.startsWith('vless://')) {
-            converted = convertVless(config, enableCustomTag, customTagName);
-          } else if (config.startsWith('trojan://')) {
-            converted = convertTrojan(config, enableCustomTag, customTagName);
-          } else if (config.startsWith('hysteria2://') || config.startsWith('hy2://')) {
-            converted = convertHysteria2(config, enableCustomTag, customTagName);
-          } else if (config.startsWith('ss://')) {
-            converted = convertShadowsocks(config, enableCustomTag, customTagName);
-          }
-        } catch (e) {
-          console.error(`Failed to convert config: ${config}`, e);
-          continue;
+
+    startLoading();
+
+    try {
+        if (isLink(input)) {
+            const content = await fetchContent(input);
+            if (content && isSingboxJSON(content)) {
+                input = content;
+            }
         }
-        if (converted) {
-          outbounds.push(converted);
-          validTags.push(converted.tag);
+
+        if (isSingboxJSON(input)) {
+            const proxyConfigs = convertFromJSON(input);
+            editor.setValue(proxyConfigs.join('\n'));
+            editor.clearSelection();
+            errorDiv.textContent = '';
+            document.getElementById('downloadButton').disabled = false;
+        } else {
+            const configs = await extractStandardConfigs(input);
+            const outbounds = [];
+            const validTags = [];
+
+            for (const config of configs) {
+                let converted;
+                try {
+                    if (config.startsWith('vmess://')) {
+                        converted = convertVmess(config, enableCustomTag, customTagName);
+                    } else if (config.startsWith('vless://')) {
+                        converted = convertVless(config, enableCustomTag, customTagName);
+                    } else if (config.startsWith('trojan://')) {
+                        converted = convertTrojan(config, enableCustomTag, customTagName);
+                    } else if (config.startsWith('hysteria2://') || config.startsWith('hy2://')) {
+                        converted = convertHysteria2(config, enableCustomTag, customTagName);
+                    } else if (config.startsWith('ss://')) {
+                        converted = convertShadowsocks(config, enableCustomTag, customTagName);
+                    }
+                } catch (e) {
+                    console.error(`Failed to convert config: ${config}`, e);
+                    continue;
+                }
+
+                if (converted) {
+                    outbounds.push(converted);
+                    validTags.push(converted.tag);
+                }
+            }
+
+            if (outbounds.length === 0) {
+                throw new Error('No valid configurations found');
+            }
+
+            const singboxConfig = enableAdBlockAndIran ? createEnhancedSingboxConfig(outbounds, validTags) : createSingboxConfig(outbounds, validTags);
+            const jsonString = JSON.stringify(singboxConfig, null, 2);
+            editor.setValue(jsonString);
+            editor.clearSelection();
+            errorDiv.textContent = '';
+            document.getElementById('downloadButton').disabled = false;
         }
-      }
-      if (outbounds.length === 0) {
-        throw new Error('No valid configurations found');
-      }
-      const singboxConfig = enableAdBlockAndIran ? createEnhancedSingboxConfig(outbounds, validTags) : createSingboxConfig(outbounds, validTags);
-      const jsonString = JSON.stringify(singboxConfig, null, 2);
-      editor.setValue(jsonString);
-      editor.clearSelection();
-      errorDiv.textContent = '';
-      document.getElementById('downloadButton').disabled = false;
+    } catch (error) {
+        errorDiv.textContent = error.message;
+        editor.setValue('');
+        document.getElementById('downloadButton').disabled = true;
+    } finally {
+        stopLoading();
     }
-  } catch (error) {
-    errorDiv.textContent = error.message;
-    editor.setValue('');
-    document.getElementById('downloadButton').disabled = true;
-  } finally {
-    stopLoading();
-  }
 }
 
 function createSingboxConfig(outbounds, validTags) {
-  return {
-    dns: {
-      final: "local-dns",
-      rules: [
-        { clash_mode: "Global", server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
-        { server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
-        { clash_mode: "Direct", server: "direct-dns" }
-      ],
-      servers: [
-        {
-          address: "tls://208.67.222.123",
-          address_resolver: "local-dns",
-          detour: "proxy",
-          tag: "proxy-dns"
+    return {
+        dns: {
+            final: "local-dns",
+            rules: [
+                { clash_mode: "Global", server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
+                { server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
+                { clash_mode: "Direct", server: "direct-dns" }
+            ],
+            servers: [
+                {
+                    address: "tls://208.67.222.123",
+                    address_resolver: "local-dns",
+                    detour: "proxy",
+                    tag: "proxy-dns"
+                },
+                {
+                    address: "local",
+                    detour: "direct",
+                    tag: "local-dns"
+                },
+                {
+                    address: "rcode://success",
+                    tag: "block"
+                },
+                {
+                    address: "local",
+                    detour: "direct",
+                    tag: "direct-dns"
+                }
+            ],
+            strategy: "prefer_ipv4"
         },
-        {
-          address: "local",
-          detour: "direct",
-          tag: "local-dns"
-        },
-        {
-          address: "rcode://success",
-          tag: "block"
-        },
-        {
-          address: "local",
-          detour: "direct",
-          tag: "direct-dns"
+        inbounds: [
+            {
+                address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
+                auto_route: true,
+                endpoint_independent_nat: false,
+                mtu: 9000,
+                platform: {
+                    http_proxy: {
+                        enabled: true,
+                        server: "127.0.0.1",
+                        server_port: 2080
+                    }
+                },
+                sniff: true,
+                stack: "system",
+                strict_route: false,
+                type: "tun"
+            },
+            {
+                listen: "127.0.0.1",
+                listen_port: 2080,
+                sniff: true,
+                type: "mixed",
+                users: []
+            }
+        ],
+        outbounds: [
+            {
+                tag: "proxy",
+                type: "selector",
+                outbounds: ["auto"].concat(validTags).concat(["direct"])
+            },
+            {
+                tag: "auto",
+                type: "urltest",
+                outbounds: validTags,
+                url: "http://www.gstatic.com/generate_204",
+                interval: "10m",
+                tolerance: 50
+            },
+            {
+                tag: "direct",
+                type: "direct"
+            },
+            ...outbounds
+        ],
+        route: {
+            auto_detect_interface: true,
+            final: "proxy",
+            rules: [
+                { clash_mode: "Direct", outbound: "direct" },
+                { clash_mode: "Global", outbound: "proxy" },
+                { protocol: "dns", action: "hijack-dns" }
+            ]
         }
-      ],
-      strategy: "prefer_ipv4"
-    },
-    inbounds: [
-      {
-        address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
-        auto_route: true,
-        endpoint_independent_nat: false,
-        mtu: 9000,
-        platform: {
-          http_proxy: {
-            enabled: true,
-            server: "127.0.0.1",
-            server_port: 2080
-          }
-        },
-        sniff: true,
-        stack: "system",
-        strict_route: false,
-        type: "tun"
-      },
-      {
-        listen: "127.0.0.1",
-        listen_port: 2080,
-        sniff: true,
-        type: "mixed",
-        users: []
-      }
-    ],
-    outbounds: [
-      {
-        tag: "proxy",
-        type: "selector",
-        outbounds: ["auto"].concat(validTags).concat(["direct"])
-      },
-      {
-        tag: "auto",
-        type: "urltest",
-        outbounds: validTags,
-        url: "http://www.gstatic.com/generate_204",
-        interval: "10m",
-        tolerance: 50
-      },
-      {
-        tag: "direct",
-        type: "direct"
-      },
-      ...outbounds
-    ],
-    route: {
-      auto_detect_interface: true,
-      final: "proxy",
-      rules: [
-        { clash_mode: "Direct", outbound: "direct" },
-        { clash_mode: "Global", outbound: "proxy" },
-        { protocol: "dns", action: "hijack-dns" }
-      ]
-    }
-  };
+    };
 }
 
 function createEnhancedSingboxConfig(outbounds, validTags) {
-  return {
-    dns: {
-      final: "local-dns",
-      rules: [
-        { clash_mode: "Global", server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
-        { server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
-        { clash_mode: "Direct", server: "direct-dns" },
-        { rule_set: ["geosite-ir"], server: "direct-dns" },
-        {
-          rule_set: ["geosite-category-ads-all", "geosite-malware", "geosite-phishing", "geosite-cryptominers"],
-          server: "block"
+    return {
+        dns: {
+            final: "local-dns",
+            rules: [
+                { clash_mode: "Global", server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
+                { server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
+                { clash_mode: "Direct", server: "direct-dns" },
+                {
+                    rule_set: ["geosite-ir"],
+                    server: "direct-dns"
+                },
+                {
+                    rule_set: ["geosite-category-ads-all", "geosite-malware", "geosite-phishing", "geosite-cryptominers"],
+                    server: "block"
+                }
+            ],
+            servers: [
+                {
+                    address: "tls://208.67.222.123",
+                    address_resolver: "local-dns",
+                    detour: "proxy",
+                    tag: "proxy-dns"
+                },
+                {
+                    address: "local",
+                    detour: "direct",
+                    tag: "local-dns"
+                },
+                {
+                    address: "rcode://success",
+                    tag: "block"
+                },
+                {
+                    address: "local",
+                    detour: "direct",
+                    tag: "direct-dns"
+                }
+            ],
+            strategy: "prefer_ipv4"
+        },
+        inbounds: [
+            {
+                address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
+                auto_route: true,
+                endpoint_independent_nat: false,
+                mtu: 9000,
+                platform: {
+                    http_proxy: {
+                        enabled: true,
+                        server: "127.0.0.1",
+                        server_port: 2080
+                    }
+                },
+                sniff: true,
+                stack: "system",
+                strict_route: false,
+                type: "tun"
+            },
+            {
+                listen: "127.0.0.1",
+                listen_port: 2080,
+                sniff: true,
+                type: "mixed",
+                users: []
+            }
+        ],
+        outbounds: [
+            {
+                tag: "proxy",
+                type: "selector",
+                outbounds: ["auto"].concat(validTags).concat(["direct"])
+            },
+            {
+                tag: "auto",
+                type: "urltest",
+                outbounds: validTags,
+                url: "http://www.gstatic.com/generate_204",
+                interval: "10m",
+                tolerance: 50
+            },
+            {
+                tag: "direct",
+                type: "direct"
+            },
+            ...outbounds
+        ],
+        route: {
+            auto_detect_interface: true,
+            final: "proxy",
+            rules: [
+                { clash_mode: "Direct", outbound: "direct" },
+                { clash_mode: "Global", outbound: "proxy" },
+                { protocol: "dns", action: "hijack-dns" },
+                {
+                    domain_suffix: [".ir"],
+                    outbound: "direct"
+                },
+                {
+                    rule_set: ["geoip-ir", "geosite-ir"],
+                    outbound: "direct"
+                },
+                {
+                    rule_set: ["geosite-category-ads-all", "geosite-malware", "geosite-phishing", "geosite-cryptominers", "geoip-malware", "geoip-phishing"],
+                    outbound: "block"
+                }
+            ],
+            rule_set: [
+                {
+                    tag: "geosite-ir",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-ir.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geosite-category-ads-all",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-category-ads-all.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geosite-malware",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-malware.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geosite-phishing",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-phishing.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geosite-cryptominers",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-cryptominers.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geoip-ir",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-ir.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geoip-malware",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-malware.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                },
+                {
+                    tag: "geoip-phishing",
+                    type: "remote",
+                    format: "binary",
+                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-phishing.srs",
+                    download_detour: "direct",
+                    update_interval: "1d"
+                }
+            ]
         }
-      ],
-      servers: [
-        {
-          address: "tls://208.67.222.123",
-          address_resolver: "local-dns",
-          detour: "proxy",
-          tag: "proxy-dns"
-        },
-        {
-          address: "local",
-          detour: "direct",
-          tag: "local-dns"
-        },
-        {
-          address: "rcode://success",
-          tag: "block"
-        },
-        {
-          address: "local",
-          detour: "direct",
-          tag: "direct-dns"
-        }
-      ],
-      strategy: "prefer_ipv4"
-    },
-    inbounds: [
-      {
-        address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
-        auto_route: true,
-        endpoint_independent_nat: false,
-        mtu: 9000,
-        platform: {
-          http_proxy: {
-            enabled: true,
-            server: "127.0.0.1",
-            server_port: 2080
-          }
-        },
-        sniff: true,
-        stack: "system",
-        strict_route: false,
-        type: "tun"
-      },
-      {
-        listen: "127.0.0.1",
-        listen_port: 2080,
-        sniff: true,
-        type: "mixed",
-        users: []
-      }
-    ],
-    outbounds: [
-      {
-        tag: "proxy",
-        type: "selector",
-        outbounds: ["auto"].concat(validTags).concat(["direct"])
-      },
-      {
-        tag: "auto",
-        type: "urltest",
-        outbounds: validTags,
-        url: "http://www.gstatic.com/generate_204",
-        interval: "10m",
-        tolerance: 50
-      },
-      {
-        tag: "direct",
-        type: "direct"
-      },
-      ...outbounds
-    ],
-    route: {
-      auto_detect_interface: true,
-      final: "proxy",
-      rules: [
-        { clash_mode: "Direct", outbound: "direct" },
-        { clash_mode: "Global", outbound: "proxy" },
-        { protocol: "dns", action: "hijack-dns" },
-        {
-          domain_suffix: [".ir"],
-          outbound: "direct"
-        },
-        {
-          rule_set: ["geoip-ir", "geosite-ir"],
-          outbound: "direct"
-        },
-        {
-          rule_set: ["geosite-category-ads-all", "geosite-malware", "geosite-phishing", "geosite-cryptominers", "geoip-malware", "geoip-phishing"],
-          outbound: "block"
-        }
-      ],
-      rule_set: [
-        {
-          tag: "geosite-ir",
-          type: "remote",
-          format: "binary",
-          url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-ir.srs",
-          download_detour: "direct",
-          update_interval: "1d"
-        },
-        {
-          tag: "geosite-category-ads-all",
-          type: "remote",
-          format: "binary",
-          url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-category-ads-all.srs",
-          download_detour: "direct",
-          update_interval: "1d"
-        },
-        {
-          tag: "geosite-malware",
-          type: "remote",
-          format: "binary",
-          url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-malware.srs",
-          download_detour: "direct",
-          update_interval: "1d"
-        },
-        {
-          tag: "geosite-phishing",
-          type: "remote",
-          format: "binary",
-          url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-phishing.srs",
-          download_detour: "direct",
-          update_interval: "1d"
-        },
-        {
-          tag: "geosite-cryptominers",
-          type: "remote",
-          format: "binary",
-          url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-cryptominers.srs",
-          download_detour: "direct",
-          update_interval: "1d"
-        },
-        {
-          tag: "geoip-ir",
-          type: "remote",
-          format: "binary",
-          url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-ir.srs",
-          download_detour: "direct",
-          update_interval: "1d"
-        },
-        {
-          tag: "geoip-malware",
-          type: "remote",
-          format: "binary",
-          url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-malware.srs",
-          download_detour: "direct",
-          update_interval: "1d"
-        },
-        {
-          tag: "geoip-phishing",
-          type: "remote",
-          format: "binary",
-          url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-phishing.srs",
-          download_detour: "direct",
-          update_interval: "1d"
-        }
-      ]
-    }
-  };
-}
-
-function convertVmess(input, enableCustomTag, customTagName) {
-  try {
-    const data = JSON.parse(atob(input.replace('vmess://', '')));
-    if (!data.add || !data.port || !data.id) return null;
-    const transport = {};
-    if (data.net === 'ws' || data.net === 'h2') {
-      if (data.path) transport.path = data.path;
-      if (data.host) transport.headers = { Host: data.host };
-      transport.type = data.net;
-    }
-    return {
-      type: "vmess",
-      tag: generateTag('vmess', enableCustomTag, customTagName),
-      server: data.add,
-      server_port: parseInt(data.port),
-      uuid: data.id,
-      security: data.scy || "auto",
-      alter_id: parseInt(data.aid || 0),
-      transport: transport,
-      tls: {
-        enabled: data.tls === 'tls',
-        insecure: true,
-        server_name: data.sni || data.add
-      }
     };
-  } catch (error) {
-    throw new Error('Invalid VMess configuration');
-  }
-}
-
-function convertVless(input, enableCustomTag, customTagName) {
-  try {
-    const url = new URL(input);
-    if (url.protocol.toLowerCase() !== 'vless:' || !url.hostname) return null;
-    const address = url.hostname;
-    const port = url.port || 443;
-    const params = new URLSearchParams(url.search);
-    const transport = {};
-    if (params.get('type') === 'ws') {
-      if (params.get('path')) transport.path = params.get('path');
-      if (params.get('host')) transport.headers = { Host: params.get('host') };
-      transport.type = 'ws';
-    }
-    return {
-      type: "vless",
-      tag: generateTag('vless', enableCustomTag, customTagName),
-      server: address,
-      server_port: parseInt(port),
-      uuid: url.username,
-      flow: params.get('flow') || '',
-      transport: transport,
-      tls: {
-        enabled: true,
-        server_name: params.get('sni') || address,
-        insecure: true
-      }
-    };
-  } catch (error) {
-    throw new Error('Invalid VLESS configuration');
-  }
-}
-
-function convertTrojan(input, enableCustomTag, customTagName) {
-  try {
-    const url = new URL(input);
-    if (url.protocol.toLowerCase() !== 'trojan:' || !url.hostname) return null;
-    const params = new URLSearchParams(url.search);
-    const transport = {};
-    const type = params.get('type');
-    if (type && type !== 'tcp' && params.get('path')) {
-      transport.path = params.get('path');
-      transport.type = type;
-    }
-    return {
-      type: "trojan",
-      tag: generateTag('trojan', enableCustomTag, customTagName),
-      server: url.hostname,
-      server_port: parseInt(url.port || 443),
-      password: url.username,
-      transport: transport,
-      tls: {
-        enabled: true,
-        server_name: params.get('sni') || url.hostname,
-        insecure: true,
-        alpn: (params.get('alpn') || '').split(',').filter(Boolean)
-      }
-    };
-  } catch (error) {
-    throw new Error('Invalid Trojan configuration');
-  }
-}
-
-function convertHysteria2(input, enableCustomTag, customTagName) {
-  try {
-    const url = new URL(input);
-    if (!['hysteria2:', 'hy2:'].includes(url.protocol.toLowerCase()) || !url.hostname || !url.port) return null;
-    const params = new URLSearchParams(url.search);
-    return {
-      type: "hysteria2",
-      tag: generateTag('hysteria2', enableCustomTag, customTagName),
-      server: url.hostname,
-      server_port: parseInt(url.port),
-      password: url.username || params.get('password') || '',
-      tls: {
-        enabled: true,
-        server_name: params.get('sni') || url.hostname,
-        insecure: true
-      }
-    };
-  } catch (error) {
-    throw new Error('Invalid Hysteria2 configuration');
-  }
-}
-
-function convertShadowsocks(input, enableCustomTag, customTagName) {
-  try {
-    const ss = input.replace('ss://', '');
-    const [serverPart, _] = ss.split('#');
-    const [methodAndPass, serverAndPort] = serverPart.split('@');
-    const [method, password] = atob(methodAndPass).split(':');
-    const [server, port] = serverAndPort.split(':');
-    if (!server || !port) return null;
-    return {
-      type: "shadowsocks",
-      tag: generateTag('ss', enableCustomTag, customTagName),
-      server: server,
-      server_port: parseInt(port),
-      method: method,
-      password: password
-    };
-  } catch (error) {
-    throw new Error('Invalid Shadowsocks configuration');
-  }
-}
-
-function generateTag(protocol, enableCustomTag, customTagName) {
-  if (enableCustomTag && customTagName) {
-    const count = (window[protocol + 'Count'] || 0) + 1;
-    window[protocol + 'Count'] = count;
-    return `${protocol}-${customTagName}-${count}`;
-  } else {
-    return `${protocol}-${generateUUID().slice(0, 8)}`;
-  }
-}
-
-function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-function safeBtoa(input) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-  return btoa(String.fromCharCode(...data));
 }
