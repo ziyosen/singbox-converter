@@ -15,8 +15,8 @@ async function fetchContent(link) {
         link = link.replace('ssconf://', 'https://');
     }
     try {
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(link)}`;
-        const response = await fetch(proxyUrl);
+        const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(link)}`;
+        const response = await fetch(allOriginsUrl);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -31,8 +31,27 @@ async function fetchContent(link) {
         }
         return text;
     } catch (error) {
-        console.error(`Failed to fetch ${link}:`, error);
-        return null;
+        console.error(`AllOrigins fetch failed for ${link}:`, error);
+        try {
+            const proxyUrl = `https://proxy.webshare.io/proxy?key=free&country=IR&url=${encodeURIComponent(link)}`;
+            const response = await fetch(proxyUrl);
+            if (!response.ok) {
+                throw new Error(`Proxy fetch failed! status: ${response.status}`);
+            }
+            const data = await response.json();
+            let text = data.contents.trim();
+            if (isBase64(text)) {
+                try {
+                    text = atob(text);
+                } catch (e) {
+                    console.error(`Failed to decode Base64 from proxy for ${link}:`, e);
+                }
+            }
+            return text;
+        } catch (proxyError) {
+            console.error(`Proxy fetch failed for ${link}:`, proxyError);
+            return null;
+        }
     }
 }
 
