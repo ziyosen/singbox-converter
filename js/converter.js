@@ -12,10 +12,44 @@ function isLink(str) {
     return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('ssconf://');
 }
 
+function isGoogleDriveLink(url) {
+    return url.includes('drive.google.com');
+}
+
+function extractGoogleDriveId(url) {
+    if (url.includes('id=')) {
+        const idMatch = url.match(/id=([^&]+)/);
+        if (idMatch && idMatch[1]) {
+            return idMatch[1];
+        }
+    }
+    
+    if (url.includes('/d/')) {
+        const idMatch = url.match(/\/d\/([^/]+)/);
+        if (idMatch && idMatch[1]) {
+            return idMatch[1];
+        }
+    }
+    
+    return null;
+}
+
 function isBase64(str) {
     if (!str || str.length % 4 !== 0) return false;
     const base64Regex = /^[A-Za-z0-9+/=]+$/;
     return base64Regex.test(str);
+}
+
+function isDataUriBase64(str) {
+    return str.startsWith('data:') && str.includes('base64,');
+}
+
+function extractBase64FromDataUri(str) {
+    const base64Part = str.split('base64,')[1];
+    if (base64Part) {
+        return base64Part;
+    }
+    return str;
 }
 
 async function fetchContent(link) {
@@ -23,74 +57,159 @@ async function fetchContent(link) {
         link = link.replace('ssconf://', 'https://');
     }
     
+    if (isGoogleDriveLink(link)) {
+        const driveId = extractGoogleDriveId(link);
+        if (driveId) {
+            const directDownloadUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+            try {
+                return await fetchWithFallbacks(directDownloadUrl);
+            } catch (error) {
+                console.error(`Failed to fetch Google Drive content:`, error);
+                return null;
+            }
+        }
+    }
+    
+    return await fetchWithFallbacks(link);
+}
+
+async function fetchWithFallbacks(url) {
+    // First try direct fetch
     try {
-        const response = await fetch(link, {
+        const response = await fetch(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5',
             }
         });
+        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
         let text = await response.text();
         text = text.trim();
-        if (isBase64(text)) {
+        
+        // Check if the response is a data URI
+        if (isDataUriBase64(text)) {
+            const base64Content = extractBase64FromDataUri(text);
             try {
-                text = atob(text);
+                return atob(base64Content);
             } catch (e) {
-                console.error(`Failed to decode Base64 from ${link}:`, e);
+                console.error(`Failed to decode Base64 from data URI:`, e);
             }
         }
+        
+        // Regular base64 check
+        if (isBase64(text)) {
+            try {
+                return atob(text);
+            } catch (e) {
+                console.error(`Failed to decode Base64:`, e);
+            }
+        }
+        
         return text;
     } catch (error) {
-        console.error(`Failed to fetch ${link} directly:`, error);
+        console.error(`Failed to fetch ${url} directly:`, error);
         
+        // Try with CORS proxies
         for (const proxyUrl of CORS_PROXIES) {
             try {
                 let fullProxyUrl;
                 
                 if (proxyUrl === CORS_PROXIES[0]) {
-                    fullProxyUrl = `${proxyUrl}${encodeURIComponent(link)}`;
+                    fullProxyUrl = `${proxyUrl}${encodeURIComponent(url)}`;
                     const response = await fetch(fullProxyUrl);
                     if (!response.ok) {
                         throw new Error(`HTTP error with ${proxyUrl}! status: ${response.status}`);
                     }
                     const data = await response.json();
                     let text = data.contents.trim();
-                    if (isBase64(text)) {
+                    
+                    // Check if the response is a data URI
+                    if (isDataUriBase64(text)) {
+                        const base64Content = extractBase64FromDataUri(text);
                         try {
-                            text = atob(text);
+                            return atob(base64Content);
                         } catch (e) {
-                            console.error(`Failed to decode Base64 from ${link} via ${proxyUrl}:`, e);
+                            console.error(`Failed to decode Base64 from data URI via ${proxyUrl}:`, e);
                         }
                     }
+                    
+                    if (isBase64(text)) {
+                        try {
+                            return atob(text);
+                        } catch (e) {
+                            console.error(`Failed to decode Base64 from ${url} via ${proxyUrl}:`, e);
+                        }
+                    }
+                    
                     return text;
                 } else {
-                    fullProxyUrl = `${proxyUrl}${encodeURIComponent(link)}`;
+                    fullProxyUrl = `${proxyUrl}${encodeURIComponent(url)}`;
                     const response = await fetch(fullProxyUrl);
                     if (!response.ok) {
                         throw new Error(`HTTP error with ${proxyUrl}! status: ${response.status}`);
                     }
                     let text = await response.text();
                     text = text.trim();
-                    if (isBase64(text)) {
+                    
+                    // Check if the response is a data URI
+                    if (isDataUriBase64(text)) {
+                        const base64Content = extractBase64FromDataUri(text);
                         try {
-                            text = atob(text);
+                            return atob(base64Content);
                         } catch (e) {
-                            console.error(`Failed to decode Base64 from ${link} via ${proxyUrl}:`, e);
+                            console.error(`Failed to decode Base64 from data URI via ${proxyUrl}:`, e);
                         }
                     }
+                    
+                    if (isBase64(text)) {
+                        try {
+                            return atob(text);
+                        } catch (e) {
+                            console.error(`Failed to decode Base64 from ${url} via ${proxyUrl}:`, e);
+                        }
+                    }
+                    
                     return text;
                 }
             } catch (proxyError) {
-                console.error(`Failed to fetch ${link} via ${proxyUrl}:`, proxyError);
+                console.error(`Failed to fetch ${url} via ${proxyUrl}:`, proxyError);
                 continue;
             }
         }
         
-        console.error(`All proxy attempts failed for ${link}`);
+        // Try with Google Drive API for Google Drive links
+        if (isGoogleDriveLink(url)) {
+            const driveId = extractGoogleDriveId(url);
+            if (driveId) {
+                try {
+                    const alternateUrl = `https://www.googleapis.com/drive/v3/files/${driveId}?alt=media`;
+                    const response = await fetch(alternateUrl);
+                    if (response.ok) {
+                        let text = await response.text();
+                        text = text.trim();
+                        
+                        if (isBase64(text)) {
+                            try {
+                                return atob(text);
+                            } catch (e) {
+                                console.error(`Failed to decode Base64 from alternate Google Drive API:`, e);
+                            }
+                        }
+                        
+                        return text;
+                    }
+                } catch (driveApiError) {
+                    console.error(`Failed to fetch from Google Drive API:`, driveApiError);
+                }
+            }
+        }
+        
+        console.error(`All fetch attempts failed for ${url}`);
         return null;
     }
 }
@@ -131,6 +250,15 @@ async function extractStandardConfigs(input) {
             } catch (e) {
                 console.error('Failed to decode Base64:', e);
             }
+        } else if (isDataUriBase64(line)) {
+            try {
+                const base64Part = extractBase64FromDataUri(line);
+                const decoded = atob(base64Part);
+                const subConfigs = await processContent(decoded);
+                configs.push(...subConfigs);
+            } catch (e) {
+                console.error('Failed to decode Base64 from data URI:', e);
+            }
         } else {
             const subConfigs = extractConfigsFromText(line);
             configs.push(...subConfigs);
@@ -146,6 +274,18 @@ async function extractStandardConfigs(input) {
 
 async function processContent(content) {
     const configs = [];
+    
+    // First check if the entire content is a data URI
+    if (isDataUriBase64(content)) {
+        try {
+            const base64Part = extractBase64FromDataUri(content);
+            const decoded = atob(base64Part);
+            return await processContent(decoded);
+        } catch (e) {
+            console.error('Failed to decode data URI:', e);
+        }
+    }
+    
     const lines = content.split('\n').map(line => line.trim()).filter(line => line);
 
     for (const line of lines) {
@@ -156,6 +296,15 @@ async function processContent(content) {
                 configs.push(...subConfigs);
             } catch (e) {
                 console.error('Failed to decode nested Base64:', e);
+            }
+        } else if (isDataUriBase64(line)) {
+            try {
+                const base64Part = extractBase64FromDataUri(line);
+                const decoded = atob(base64Part);
+                const subConfigs = extractConfigsFromText(decoded);
+                configs.push(...subConfigs);
+            } catch (e) {
+                console.error('Failed to decode nested data URI Base64:', e);
             }
         } else {
             const subConfigs = extractConfigsFromText(line);
@@ -227,6 +376,21 @@ async function convertConfig() {
             const content = await fetchContent(input);
             if (content && isSingboxJSON(content)) {
                 input = content;
+            } else if (content) {
+                // Keep the content for further processing
+                input = content;
+            }
+        } else if (isDataUriBase64(input)) {
+            try {
+                const base64Part = extractBase64FromDataUri(input);
+                const decoded = atob(base64Part);
+                if (isSingboxJSON(decoded)) {
+                    input = decoded;
+                } else {
+                    input = decoded;
+                }
+            } catch (e) {
+                console.error('Failed to decode data URI:', e);
             }
         }
 
