@@ -22,7 +22,16 @@ async function fetchContent(link) {
     if (link.startsWith('ssconf://')) {
         link = link.replace('ssconf://', 'https://');
     }
-    
+
+    if (link.includes('drive.google.com')) {
+        const fileIdMatch = link.match(/id=([\w-]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+            const fileId = fileIdMatch[1];
+            const directLink = `https://drive.google.com/uc?export=download&id=${fileId}`;
+            link = directLink;
+        }
+    }
+
     try {
         const response = await fetch(link, {
             headers: {
