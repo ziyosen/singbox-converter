@@ -22,16 +22,7 @@ async function fetchContent(link) {
     if (link.startsWith('ssconf://')) {
         link = link.replace('ssconf://', 'https://');
     }
-
-    if (link.includes('drive.google.com')) {
-        const fileIdMatch = link.match(/id=([\w-]+)/);
-        if (fileIdMatch && fileIdMatch[1]) {
-            const fileId = fileIdMatch[1];
-            const directLink = `https://drive.google.com/uc?export=download&id=${fileId}`;
-            link = directLink;
-        }
-    }
-
+    
     try {
         const response = await fetch(link, {
             headers: {
@@ -43,7 +34,19 @@ async function fetchContent(link) {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        let text = await response.text();
+        const contentType = response.headers.get('Content-Type');
+        let text;
+        if (contentType && contentType.includes('application/octet-stream')) {
+            const blob = await response.blob();
+            text = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsText(blob);
+            });
+        } else {
+            text = await response.text();
+        }
         text = text.trim();
         if (isBase64(text)) {
             try {
@@ -82,7 +85,19 @@ async function fetchContent(link) {
                     if (!response.ok) {
                         throw new Error(`HTTP error with ${proxyUrl}! status: ${response.status}`);
                     }
-                    let text = await response.text();
+                    const contentType = response.headers.get('Content-Type');
+                    let text;
+                    if (contentType && contentType.includes('application/octet-stream')) {
+                        const blob = await response.blob();
+                        text = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.onerror = () => reject(reader.error);
+                            reader.readAsText(blob);
+                        });
+                    } else {
+                        text = await response.text();
+                    }
                     text = text.trim();
                     if (isBase64(text)) {
                         try {
@@ -330,7 +345,7 @@ function createSingboxConfig(outbounds, validTags) {
         },
         inbounds: [
             {
-                address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
+                address: ["172.19.0.0/30", "fdfe:dcba:9876::1/126"],
                 auto_route: true,
                 endpoint_independent_nat: false,
                 mtu: 9000,
