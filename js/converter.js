@@ -8,6 +8,22 @@ const CORS_PROXIES = [
     'https://thingproxy.freeboard.io/fetch/'
 ];
 
+const IRAN_CORS_PROXIES = [
+
+    'https://server.parsboole.xyz/proxy/fetch?url=',
+    'https://corsiran.pwpstudio.ir/?',
+    'https://irproxy.vercel.app/?url=',
+    
+    'https://api.codebazan.ir/proxy-iran/?url=',
+    'https://api.hafez.consulting/proxy?url=',
+    'https://api.sansorchi.net/proxy.php?url=',
+
+    'https://iran-cors-proxy.cyclic.cloud/cors?url=',
+    'https://api.varf.cfd/cors?url=',
+    'https://zarpr.cloud/cors?url=',
+    'https://proxy-parson.herokuapp.com/cors?url='
+];
+
 function isLink(str) {
     return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('ssconf://');
 }
@@ -52,6 +68,26 @@ function extractBase64FromDataUri(str) {
     return str;
 }
 
+function isIranianURLContent(content) {
+    if (!content) return false;
+    
+    // Checking for CloudFlare block message or other Iranian access-only indicators
+    if (content.includes('Sorry, you have been blocked') && 
+        content.includes('Cloudflare')) {
+        return true;
+    }
+    
+    if (content.includes('access denied') || 
+        content.includes('403 Forbidden') || 
+        content.includes('access control') ||
+        content.includes('Iran') ||
+        content.includes('ایران')) {
+        return true;
+    }
+    
+    return false;
+}
+
 async function fetchContent(link) {
     if (link.startsWith('ssconf://')) {
         link = link.replace('ssconf://', 'https://');
@@ -74,6 +110,7 @@ async function fetchContent(link) {
 }
 
 async function fetchWithFallbacks(url) {
+    // First, try direct fetch
     try {
         const response = await fetch(url, {
             headers: {
@@ -89,6 +126,11 @@ async function fetchWithFallbacks(url) {
         
         let text = await response.text();
         text = text.trim();
+        
+        // Check if we got a restriction message rather than actual content
+        if (isIranianURLContent(text)) {
+            throw new Error('Iranian URL detected, switching to Iranian proxies');
+        }
         
         if (isDataUriBase64(text)) {
             const base64Content = extractBase64FromDataUri(text);
@@ -111,7 +153,11 @@ async function fetchWithFallbacks(url) {
     } catch (error) {
         console.error(`Failed to fetch ${url} directly:`, error);
         
-        for (const proxyUrl of CORS_PROXIES) {
+        // Then try standard CORS proxies
+        const isSwitchingToIranianProxies = error.message === 'Iranian URL detected, switching to Iranian proxies';
+        let proxyList = isSwitchingToIranianProxies ? [] : CORS_PROXIES;
+        
+        for (const proxyUrl of proxyList) {
             try {
                 let fullProxyUrl;
                 
@@ -123,6 +169,11 @@ async function fetchWithFallbacks(url) {
                     }
                     const data = await response.json();
                     let text = data.contents.trim();
+                    
+                    // Check if we got a restriction message from CORS proxy
+                    if (isIranianURLContent(text)) {
+                        throw new Error('Iranian URL detected, skipping standard proxy');
+                    }
                     
                     if (isDataUriBase64(text)) {
                         const base64Content = extractBase64FromDataUri(text);
@@ -151,6 +202,11 @@ async function fetchWithFallbacks(url) {
                     let text = await response.text();
                     text = text.trim();
                     
+                    // Check if we got a restriction message from CORS proxy
+                    if (isIranianURLContent(text)) {
+                        throw new Error('Iranian URL detected, skipping standard proxy');
+                    }
+                    
                     if (isDataUriBase64(text)) {
                         const base64Content = extractBase64FromDataUri(text);
                         try {
@@ -172,6 +228,42 @@ async function fetchWithFallbacks(url) {
                 }
             } catch (proxyError) {
                 console.error(`Failed to fetch ${url} via ${proxyUrl}:`, proxyError);
+                continue;
+            }
+        }
+        
+        // If standard proxies fail, try Iranian proxies as last resort
+        console.log('Attempting to fetch with Iranian proxies...');
+        for (const iranProxyUrl of IRAN_CORS_PROXIES) {
+            try {
+                const fullProxyUrl = `${iranProxyUrl}${encodeURIComponent(url)}`;
+                const response = await fetch(fullProxyUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error with ${iranProxyUrl}! status: ${response.status}`);
+                }
+                let text = await response.text();
+                text = text.trim();
+                
+                if (isDataUriBase64(text)) {
+                    const base64Content = extractBase64FromDataUri(text);
+                    try {
+                        return atob(base64Content);
+                    } catch (e) {
+                        console.error(`Failed to decode Base64 from data URI via ${iranProxyUrl}:`, e);
+                    }
+                }
+                
+                if (isBase64(text)) {
+                    try {
+                        return atob(text);
+                    } catch (e) {
+                        console.error(`Failed to decode Base64 from ${url} via ${iranProxyUrl}:`, e);
+                    }
+                }
+                
+                return text;
+            } catch (iranProxyError) {
+                console.error(`Failed to fetch ${url} via ${iranProxyUrl}:`, iranProxyError);
                 continue;
             }
         }
