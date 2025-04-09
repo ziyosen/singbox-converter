@@ -8,6 +8,14 @@ const CORS_PROXIES = [
     'https://thingproxy.freeboard.io/fetch/'
 ];
 
+// پروکسی‌های ایرانی که می‌توانند به URL‌های محدود شده به IP‌های ایران دسترسی داشته باشند
+const IRAN_PROXIES = [
+    'https://api.codebazan.ir/proxy/?url=',
+    'https://server.parsboole.xyz/proxy/fetch?url=',
+    'https://corsiran.pwpstudio.ir/?',
+    'https://irproxy.vercel.app/?url='
+];
+
 function isLink(str) {
     return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('ssconf://');
 }
@@ -74,6 +82,7 @@ async function fetchContent(link) {
 }
 
 async function fetchWithFallbacks(url) {
+    // اول سعی کنیم مستقیم به URL دسترسی پیدا کنیم
     try {
         const response = await fetch(url, {
             headers: {
@@ -111,71 +120,19 @@ async function fetchWithFallbacks(url) {
     } catch (error) {
         console.error(`Failed to fetch ${url} directly:`, error);
         
-        for (const proxyUrl of CORS_PROXIES) {
-            try {
-                let fullProxyUrl;
-                
-                if (proxyUrl === CORS_PROXIES[0]) {
-                    fullProxyUrl = `${proxyUrl}${encodeURIComponent(url)}`;
-                    const response = await fetch(fullProxyUrl);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error with ${proxyUrl}! status: ${response.status}`);
-                    }
-                    const data = await response.json();
-                    let text = data.contents.trim();
-                    
-                    if (isDataUriBase64(text)) {
-                        const base64Content = extractBase64FromDataUri(text);
-                        try {
-                            return atob(base64Content);
-                        } catch (e) {
-                            console.error(`Failed to decode Base64 from data URI via ${proxyUrl}:`, e);
-                        }
-                    }
-                    
-                    if (isBase64(text)) {
-                        try {
-                            return atob(text);
-                        } catch (e) {
-                            console.error(`Failed to decode Base64 from ${url} via ${proxyUrl}:`, e);
-                        }
-                    }
-                    
-                    return text;
-                } else {
-                    fullProxyUrl = `${proxyUrl}${encodeURIComponent(url)}`;
-                    const response = await fetch(fullProxyUrl);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error with ${proxyUrl}! status: ${response.status}`);
-                    }
-                    let text = await response.text();
-                    text = text.trim();
-                    
-                    if (isDataUriBase64(text)) {
-                        const base64Content = extractBase64FromDataUri(text);
-                        try {
-                            return atob(base64Content);
-                        } catch (e) {
-                            console.error(`Failed to decode Base64 from data URI via ${proxyUrl}:`, e);
-                        }
-                    }
-                    
-                    if (isBase64(text)) {
-                        try {
-                            return atob(text);
-                        } catch (e) {
-                            console.error(`Failed to decode Base64 from ${url} via ${proxyUrl}:`, e);
-                        }
-                    }
-                    
-                    return text;
-                }
-            } catch (proxyError) {
-                console.error(`Failed to fetch ${url} via ${proxyUrl}:`, proxyError);
-                continue;
-            }
+        // دوم، پروکسی‌های عمومی را امتحان کنیم
+        const result = await tryProxies(url, CORS_PROXIES);
+        if (result) {
+            return result;
         }
         
+        // سوم، پروکسی‌های ایرانی را امتحان کنیم
+        const iranResult = await tryProxies(url, IRAN_PROXIES);
+        if (iranResult) {
+            return iranResult;
+        }
+        
+        // اگر Google Drive URL است، با API مخصوص تلاش کنیم
         if (isGoogleDriveLink(url)) {
             const driveId = extractGoogleDriveId(url);
             if (driveId) {
@@ -205,6 +162,76 @@ async function fetchWithFallbacks(url) {
         console.error(`All fetch attempts failed for ${url}`);
         return null;
     }
+}
+
+// تابع جدید برای امتحان کردن پروکسی‌ها
+async function tryProxies(url, proxyList) {
+    for (const proxyUrl of proxyList) {
+        try {
+            let fullProxyUrl;
+            
+            if (proxyUrl === CORS_PROXIES[0]) {
+                fullProxyUrl = `${proxyUrl}${encodeURIComponent(url)}`;
+                const response = await fetch(fullProxyUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error with ${proxyUrl}! status: ${response.status}`);
+                }
+                const data = await response.json();
+                let text = data.contents.trim();
+                
+                if (isDataUriBase64(text)) {
+                    const base64Content = extractBase64FromDataUri(text);
+                    try {
+                        return atob(base64Content);
+                    } catch (e) {
+                        console.error(`Failed to decode Base64 from data URI via ${proxyUrl}:`, e);
+                    }
+                }
+                
+                if (isBase64(text)) {
+                    try {
+                        return atob(text);
+                    } catch (e) {
+                        console.error(`Failed to decode Base64 from ${url} via ${proxyUrl}:`, e);
+                    }
+                }
+                
+                return text;
+            } else {
+                fullProxyUrl = `${proxyUrl}${encodeURIComponent(url)}`;
+                const response = await fetch(fullProxyUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error with ${proxyUrl}! status: ${response.status}`);
+                }
+                let text = await response.text();
+                text = text.trim();
+                
+                if (isDataUriBase64(text)) {
+                    const base64Content = extractBase64FromDataUri(text);
+                    try {
+                        return atob(base64Content);
+                    } catch (e) {
+                        console.error(`Failed to decode Base64 from data URI via ${proxyUrl}:`, e);
+                    }
+                }
+                
+                if (isBase64(text)) {
+                    try {
+                        return atob(text);
+                    } catch (e) {
+                        console.error(`Failed to decode Base64 from ${url} via ${proxyUrl}:`, e);
+                    }
+                }
+                
+                return text;
+            }
+        } catch (proxyError) {
+            console.error(`Failed to fetch ${url} via ${proxyUrl}:`, proxyError);
+            continue;
+        }
+    }
+    
+    return null;
 }
 
 function extractConfigsFromText(text) {
