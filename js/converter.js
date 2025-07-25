@@ -703,15 +703,6 @@ function createEnhancedSingboxConfig(outbounds, validTags) {
                     url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-phishing.srs",
                     download_detour: "direct",
                     update_interval: "1d"
-                    },
-               "experimental": {
-               "clash_api": {
-            "external_controller": "0.0.0.0:9090",
-            "external_ui": "dist",
-            "external_ui_download_url": "https://github.com/Zephyruso/zashboard/releases/latest/download/dist-cdn-fonts.zip",
-            "external_ui_download_detour": "🌐 Internet",
-            "default_mode": "rule",
-            "access_control_allow_origin": "*"
                 }
             ]
         }
