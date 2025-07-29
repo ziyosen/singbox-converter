@@ -503,6 +503,8 @@ function createSingboxConfig(outbounds, validTags) {
             },
             {
                 "domain": [
+               
+                    
                     
                 ],
                 "server": "google-dns",
@@ -514,8 +516,54 @@ function createSingboxConfig(outbounds, validTags) {
                 "rewrite_ttl": 7200
             },
             {
+                "outbound": "🔞 Porn",
+                "server": "block-dns"
+            },
+            {
+                "outbound": "🎯 Ads",
+                "server": "block-dns"
+            },
+            {
+                "rule_set": [
+                    "geosite-facebook1",
+                    "geosite-facebook3",
+                    "facebook-dev",
+                    "facebook-ipcidr",
+                    "geosite-instagram",
+                    "geosite-discord",
+                    "geosite-tiktok",
+                    "AS32934",
+                    "Google-AS15169",
+                    "google-ipcidr",
+                    "google-scholar",
+                    "speedtest",
+                    "messenger"
+                ],
                 "outbound": "🌐 Internet",
-                "server": "cloudflare-dns",
+                "action": "route",
+                "server": "dns-local",
+                "rewrite_ttl": 7200
+            },
+            {
+                "domain_suffix": [
+                    "dailymotion.com",
+                    "dm-event.net",
+                    "dmcdn.net",
+                    "maki.my.id",
+                    "kuramanime.run",
+                    "filemoon.sx",
+                    "mega.co.nz",
+                    "ghbrisk.com"
+                ],
+                "rule_set": [
+                    "geosite-youtube",
+                    "geosite-openai",
+                    "geosite-google",
+                    "geoip-id"
+                ],
+                "outbound": "🌐 Internet",
+                "action": "route",
+                "server": "google-dns",
                 "rewrite_ttl": 7200
             }
         ],
@@ -567,8 +615,7 @@ function createSingboxConfig(outbounds, validTags) {
             "tag": "🌐 Internet",
             "outbounds": [
                 "🚀 Latency",
-                "direct-out",
-                
+                "direct-out"
             ],
             "default": "🚀 Latency"
         },
@@ -576,13 +623,38 @@ function createSingboxConfig(outbounds, validTags) {
             "type": "urltest",
             "tag": "🚀 Latency",
             "outbounds": [
-
                 
+
             ],
             "url": "https://connectivitycheck.gstatic.com/generate_204",
             "interval": "1m30s",
             "tolerance": 60,
             "idle_timeout": "5m0s"
+        },
+        {
+            "type": "selector",
+            "tag": "🔞 Porn",
+            "outbounds": [
+                "block",
+                "🌐 Internet"
+            ]
+        },
+        {
+            "type": "selector",
+            "tag": "🎯 Ads",
+            "outbounds": [
+                "block",
+                "🌐 Internet"
+            ]
+        },
+        {
+            "type": "selector",
+            "tag": "📞 Rule-WA",
+            "outbounds": [
+                "direct-out",
+                "🌐 Internet"
+            ],
+            "default": "🌐 Internet"
         },
         {
             "type": "direct",
@@ -593,6 +665,7 @@ function createSingboxConfig(outbounds, validTags) {
             "tag": "block"
         },
         
+
     ],
     "route": {
         "rules": [
@@ -608,19 +681,132 @@ function createSingboxConfig(outbounds, validTags) {
                     }
                 ],
                 "action": "hijack-dns"
+            },
+            {
+                "rule_set": [
+                    "pornholeindo",
+                    "category-porn",
+                    "nsfw-onlydomains",
+                    "porn-ags"
+                ],
+                "domain_keyword": [
+                    "avtube"
+                ],
+                "outbound": "🔞 Porn"
+            },
+            {
+                "rule_set": [
+                    "geosite-rule-ads",
+                    "Ads-Adaway",
+                    "Ads-Abpindo",
+                    "GoodbyeAds-YouTube-AdBlock-Filter",
+                    "gambling-ags",
+                    "gambling-onlydomains",
+                    "native.amazon",
+                    "native.oppo-realme",
+                    "native.tiktok.extended",
+                    "native.tiktok",
+                    "native.vivo",
+                    "native.xiaomi"
+                ],
+                "domain_keyword": [
+                    "data togel"
+                ],
+                "outbound": "🎯 Ads"
+            },
+            {
+                "domain_suffix": [
+                    "dailymotion.com",
+                    "maki.my.id",
+                    "kuramanime.run",
+                    "filemoon.sx",
+                    "mega.co.nz",
+                    "ghbrisk.com"
+                ],
+                "rule_set": [
+                    "geosite-youtube",
+                    "geosite-openai",
+                    "geosite-google",
+                    "geoip-id"
+                ],
+                "inbound": [
+                    "direct-in"
+                ],
+                "outbound": "🌐 Internet",
+                "action": "route"
+            },
+            {
+                "inbound": [
+                    "direct-in"
+                ],
+                "rule_set": [
+                    "geosite-wa"
+                ],
+                "domain_suffix": [
+                    "wa.me",
+                    "whatsapp-plus.info",
+                    "whatsapp-plus.me",
+                    "whatsapp-plus.net",
+                    "whatsapp.cc",
+                    "whatsapp.biz",
+                    "whatsapp.com",
+                    "whatsapp.info",
+                    "whatsapp.net",
+                    "whatsapp.org",
+                    "whatsapp.tv",
+                    "whatsappbrand.com",
+                    "graph.whatsapp.com",
+                    "graph.whatsapp.net"
+                ],
+                "domain": [
+                    "graph.facebook.com"
+                ],
+                "domain_keyword": [
+                    "whatsapp"
+                ],
+                "ip_cidr": [
+                    "158.85.224.160/27",
+                    "158.85.46.128/27",
+                    "158.85.5.192/27",
+                    "173.192.222.160/27",
+                    "173.192.231.32/27",
+                    "18.194.0.0/15",
+                    "184.173.128.0/17",
+                    "208.43.122.128/27",
+                    "34.224.0.0/12",
+                    "50.22.198.204/30",
+                    "54.242.0.0/15"
+                ],
+                "outbound": "📞 Rule-WA",
+                "ip_is_private": true
+            },
+            {
+                "ip_is_private": true,
+                "rule_set": "geoip-id",
+                "outbound": "🌐 Internet"
+            },
+            {
+                "rule_set": [
+                    "geosite-facebook1",
+                    "geosite-facebook3",
+                    "facebook-dev",
+                    "facebook-ipcidr",
+                    "geosite-instagram",
+                    "geosite-discord",
+                    "geosite-tiktok",
+                    "AS32934",
+                    "Google-AS15169",
+                    "google-ipcidr",
+                    "google-scholar",
+                    "speedtest",
+                    "messenger"
+                ],
+                "inbound": [
+                    "direct-in"
+                ],
+                "outbound": "🌐 Internet",
+                "action": "route"
             }
-        ],
-        "final": "🌐 Internet",
-        "auto_detect_interface": true
-    },
-    "experimental": {
-        "clash_api": {
-            "external_controller": "0.0.0.0:9090",
-            "external_ui": "dist",
-            "external_ui_download_url": "https://github.com/Zephyruso/zashboard/releases/latest/download/dist-cdn-fonts.zip",
-            "external_ui_download_detour": "🌐 Internet",
-            "default_mode": "rule",
-            "access_control_allow_origin": "*"
         }
     }
 }
