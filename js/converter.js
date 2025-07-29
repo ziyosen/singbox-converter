@@ -807,9 +807,9 @@ function createSingboxConfig(outbounds, validTags) {
                 "outbound": "🌐 Internet",
                 "action": "route"
             }
-        }
-    }
-}
+      }
+ 
+  }
 
 function createEnhancedSingboxConfig(outbounds, validTags) {
     return{
