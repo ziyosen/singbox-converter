@@ -443,275 +443,369 @@ async function convertConfig() {
 
 function createSingboxConfig(outbounds, validTags) {
     return {
-        dns: {
-            final: "local-dns",
-            rules: [
-                { clash_mode: "Global", server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
-                { server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
-                { clash_mode: "Direct", server: "direct-dns" }
-            ],
-            servers: [
-                {
-                    address: "tls://208.67.222.123",
-                    address_resolver: "local-dns",
-                    detour: "proxy",
-                    tag: "proxy-dns"
-                },
-                {
-                    address: "local",
-                    detour: "direct",
-                    tag: "local-dns"
-                },
-                {
-                    address: "rcode://success",
-                    tag: "block"
-                },
-                {
-                    address: "local",
-                    detour: "direct",
-                    tag: "direct-dns"
-                }
-            ],
-            strategy: "prefer_ipv4"
-        },
-        inbounds: [
+        log": {
+        "disabled": true,
+        "level": "debug",
+        "output": "Nekobox.log",
+        "timestamp": true
+    },
+    "dns": {
+        "servers": [
             {
-                address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
-                auto_route: true,
-                endpoint_independent_nat: false,
-                mtu: 9000,
-                platform: {
-                    http_proxy: {
-                        enabled: true,
-                        server: "127.0.0.1",
-                        server_port: 2080
-                    }
-                },
-                sniff: true,
-                stack: "system",
-                strict_route: false,
-                type: "tun"
+                "tag": "google-dns",
+                "address": "tls://dns.google",
+                "address_resolver": "dns-local",
+                "address_strategy": "prefer_ipv4",
+                "strategy": "ipv4_only",
+                "detour": "🚀 Latency"
             },
             {
-                listen: "127.0.0.1",
-                listen_port: 2080,
-                sniff: true,
-                type: "mixed",
-                users: []
+                "tag": "cloudflare-dns",
+                "address": "https://cloudflare-dns.com/dns-query",
+                "address_resolver": "dns-local",
+                "address_strategy": "prefer_ipv4",
+                "strategy": "ipv4_only",
+                "detour": "🌐 Internet"
+            },
+            {
+                "tag": "dns-local",
+                "address": "local",
+                "address_resolver": "local",
+                "address_strategy": "prefer_ipv4",
+                "strategy": "ipv4_only"
+            },
+            {
+                "tag": "block-dns",
+                "address": "rcode://success",
+                "detour": "block"
             }
         ],
-        outbounds: [
+        "rules": [
             {
-                tag: "proxy",
-                type: "selector",
-                outbounds: ["auto"].concat(validTags).concat(["direct"])
+                "domain": [
+                    "plus-store.naver.com",
+                    "ava.game.naver.com",
+                    "investor.fb.com",
+                    "investors.spotify.com",
+                    "nontontv.vidio.com",
+                    "support.vidio.com",
+                    "img.email2.vidio.com",
+                    "quiz.int.vidio.com",
+                    "quiz.vidio.com"
+                ],
+                "server": "dns-local"
             },
             {
-                tag: "auto",
-                type: "urltest",
-                outbounds: validTags,
-                url: "http://www.gstatic.com/generate_204",
-                interval: "10m",
-                tolerance: 50
+                "network": "udp",
+                "port": 443,
+                "action": "reject",
+                "method": "drop"
             },
             {
-                tag: "direct",
-                type: "direct"
+                "domain": [
+                    
+                ],
+                "server": "google-dns",
+                "action": "route"
             },
-            ...outbounds
+            {
+                "outbound": "🚀 Latency",
+                "server": "google-dns",
+                "rewrite_ttl": 7200
+            },
+            {
+                "outbound": "🌐 Internet",
+                "server": "cloudflare-dns",
+                "rewrite_ttl": 7200
+            }
         ],
-        route: {
-            auto_detect_interface: true,
-            final: "proxy",
-            rules: [
-                { clash_mode: "Direct", outbound: "direct" },
-                { clash_mode: "Global", outbound: "proxy" },
-                { protocol: "dns", action: "hijack-dns" }
-            ]
+        "strategy": "ipv4_only",
+        "independent_cache": true
+    },
+    "inbounds": [
+        {
+            "type": "tun",
+            "tag": "tun-in",
+            "interface_name": "tunelm0n",
+            "mtu": 1590,
+            "address": [
+                "172.18.0.1/30",
+                "fdfe:dcba:9876::1/126"
+            ],
+            "auto_route": true,
+            "strict_route": true,
+            "stack": "gvisor",
+            "sniff": true,
+            "endpoint_independent_nat": true
+        },
+        {
+            "type": "mixed",
+            "tag": "mixed-in",
+            "listen": "0.0.0.0",
+            "listen_port": 2080,
+            "tcp_fast_open": true,
+            "sniff": true,
+            "sniff_override_destination": true
+        },
+        {
+            "type": "socks",
+            "tag": "socks-in",
+            "listen": "0.0.0.0",
+            "listen_port": 2082,
+            "tcp_fast_open": true
+        },
+        {
+            "type": "direct",
+            "tag": "direct-in",
+            "override_address": "112.215.203.246",
+            "override_port": 53
         }
-    };
+    ],
+    "outbounds": [
+        {
+            "type": "selector",
+            "tag": "🌐 Internet",
+            "outbounds": [
+                "🚀 Latency",
+                "direct-out",
+                
+            ],
+            "default": "🚀 Latency"
+        },
+        {
+            "type": "urltest",
+            "tag": "🚀 Latency",
+            "outbounds": [
+
+                
+            ],
+            "url": "https://connectivitycheck.gstatic.com/generate_204",
+            "interval": "1m30s",
+            "tolerance": 60,
+            "idle_timeout": "5m0s"
+        },
+        {
+            "type": "direct",
+            "tag": "direct-out"
+        },
+        {
+            "type": "block",
+            "tag": "block"
+        },
+        
+    ],
+    "route": {
+        "rules": [
+            {
+                "type": "logical",
+                "mode": "or",
+                "rules": [
+                    {
+                        "protocol": "dns"
+                    },
+                    {
+                        "port": 53
+                    }
+                ],
+                "action": "hijack-dns"
+            }
+        ],
+        "final": "🌐 Internet",
+        "auto_detect_interface": true
+    },
+    "experimental": {
+        "clash_api": {
+            "external_controller": "0.0.0.0:9090",
+            "external_ui": "dist",
+            "external_ui_download_url": "https://github.com/Zephyruso/zashboard/releases/latest/download/dist-cdn-fonts.zip",
+            "external_ui_download_detour": "🌐 Internet",
+            "default_mode": "rule",
+            "access_control_allow_origin": "*"
+        }
+    }
 }
 
 function createEnhancedSingboxConfig(outbounds, validTags) {
     return {
-        dns: {
-            final: "local-dns",
-            rules: [
-                { clash_mode: "Global", server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
-                { server: "proxy-dns", source_ip_cidr: ["172.19.0.0/30"] },
-                { clash_mode: "Direct", server: "direct-dns" },
-                {
-                    rule_set: ["geosite-ir"],
-                    server: "direct-dns"
-                },
-                {
-                    rule_set: ["geosite-category-ads-all", "geosite-malware", "geosite-phishing", "geosite-cryptominers"],
-                    server: "block"
-                }
-            ],
-            servers: [
-                {
-                    address: "tls://208.67.222.123",
-                    address_resolver: "local-dns",
-                    detour: "proxy",
-                    tag: "proxy-dns"
-                },
-                {
-                    address: "local",
-                    detour: "direct",
-                    tag: "local-dns"
-                },
-                {
-                    address: "rcode://success",
-                    tag: "block"
-                },
-                {
-                    address: "local",
-                    detour: "direct",
-                    tag: "direct-dns"
-                }
-            ],
-            strategy: "prefer_ipv4"
-        },
-        inbounds: [
+    
+    "log": {
+        "disabled": true,
+        "level": "debug",
+        "output": "Nekobox.log",
+        "timestamp": true
+    },
+    "dns": {
+        "servers": [
             {
-                address: ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
-                auto_route: true,
-                endpoint_independent_nat: false,
-                mtu: 9000,
-                platform: {
-                    http_proxy: {
-                        enabled: true,
-                        server: "127.0.0.1",
-                        server_port: 2080
-                    }
-                },
-                sniff: true,
-                stack: "system",
-                strict_route: false,
-                type: "tun"
+                "tag": "google-dns",
+                "address": "tls://dns.google",
+                "address_resolver": "dns-local",
+                "address_strategy": "prefer_ipv4",
+                "strategy": "ipv4_only",
+                "detour": "🚀 Latency"
             },
             {
-                listen: "127.0.0.1",
-                listen_port: 2080,
-                sniff: true,
-                type: "mixed",
-                users: []
+                "tag": "cloudflare-dns",
+                "address": "https://cloudflare-dns.com/dns-query",
+                "address_resolver": "dns-local",
+                "address_strategy": "prefer_ipv4",
+                "strategy": "ipv4_only",
+                "detour": "🌐 Internet"
+            },
+            {
+                "tag": "dns-local",
+                "address": "local",
+                "address_resolver": "local",
+                "address_strategy": "prefer_ipv4",
+                "strategy": "ipv4_only"
+            },
+            {
+                "tag": "block-dns",
+                "address": "rcode://success",
+                "detour": "block"
             }
         ],
-        outbounds: [
+        "rules": [
             {
-                tag: "proxy",
-                type: "selector",
-                outbounds: ["auto"].concat(validTags).concat(["direct"])
+                "domain": [
+                    "plus-store.naver.com",
+                    "ava.game.naver.com",
+                    "investor.fb.com",
+                    "investors.spotify.com",
+                    "nontontv.vidio.com",
+                    "support.vidio.com",
+                    "img.email2.vidio.com",
+                    "quiz.int.vidio.com",
+                    "quiz.vidio.com"
+                ],
+                "server": "dns-local"
             },
             {
-                tag: "auto",
-                type: "urltest",
-                outbounds: validTags,
-                url: "http://www.gstatic.com/generate_204",
-                interval: "10m",
-                tolerance: 50
+                "network": "udp",
+                "port": 443,
+                "action": "reject",
+                "method": "drop"
             },
             {
-                tag: "direct",
-                type: "direct"
+                "domain": [
+                    
+                ],
+                "server": "google-dns",
+                "action": "route"
             },
-            ...outbounds
+            {
+                "outbound": "🚀 Latency",
+                "server": "google-dns",
+                "rewrite_ttl": 7200
+            },
+            {
+                "outbound": "🌐 Internet",
+                "server": "cloudflare-dns",
+                "rewrite_ttl": 7200
+            }
         ],
-        route: {
-            auto_detect_interface: true,
-            final: "proxy",
-            rules: [
-                { clash_mode: "Direct", outbound: "direct" },
-                { clash_mode: "Global", outbound: "proxy" },
-                { protocol: "dns", action: "hijack-dns" },
-                {
-                    domain_suffix: [".ir"],
-                    outbound: "direct"
-                },
-                {
-                    rule_set: ["geoip-ir", "geosite-ir"],
-                    outbound: "direct"
-                },
-                {
-                    rule_set: ["geosite-category-ads-all", "geosite-malware", "geosite-phishing", "geosite-cryptominers", "geoip-malware", "geoip-phishing"],
-                    outbound: "block"
-                }
+        "strategy": "ipv4_only",
+        "independent_cache": true
+    },
+    "inbounds": [
+        {
+            "type": "tun",
+            "tag": "tun-in",
+            "interface_name": "tunelm0n",
+            "mtu": 1590,
+            "address": [
+                "172.18.0.1/30",
+                "fdfe:dcba:9876::1/126"
             ],
-            rule_set: [
-                {
-                    tag: "geosite-ir",
-                    type: "remote",
-                    format: "binary",
-                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-ir.srs",
-                    download_detour: "direct",
-                    update_interval: "1d"
-                },
-                {
-                    tag: "geosite-category-ads-all",
-                    type: "remote",
-                    format: "binary",
-                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-category-ads-all.srs",
-                    download_detour: "direct",
-                    update_interval: "1d"
-                },
-                {
-                    tag: "geosite-malware",
-                    type: "remote",
-                    format: "binary",
-                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-malware.srs",
-                    download_detour: "direct",
-                    update_interval: "1d"
-                },
-                {
-                    tag: "geosite-phishing",
-                    type: "remote",
-                    format: "binary",
-                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-phishing.srs",
-                    download_detour: "direct",
-                    update_interval: "1d"
-                },
-                {
-                    tag: "geosite-cryptominers",
-                    type: "remote",
-                    format: "binary",
-                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geosite-cryptominers.srs",
-                    download_detour: "direct",
-                    update_interval: "1d"
-                },
-                {
-                    tag: "geoip-ir",
-                    type: "remote",
-                    format: "binary",
-                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-ir.srs",
-                    download_detour: "direct",
-                    update_interval: "1d"
-                },
-                {
-                    tag: "geoip-malware",
-                    type: "remote",
-                    format: "binary",
-                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-malware.srs",
-                    download_detour: "direct",
-                    update_interval: "1d"
-                },
-                {
-                    tag: "geoip-phishing",
-                    type: "remote",
-                    format: "binary",
-                    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-sing-box-rules/rule-set/geoip-phishing.srs",
-                    download_detour: "direct",
-                    update_interval: "1d"
-                },
-              "experimental": {
-    "clash_api": {
-      "external_controller": "0.0.0.0:9090",
-      "external_ui": "dist",
-      "external_ui_download_url": "https://github.com/Zephyruso/zashboard/releases/latest/download/dist-cdn-fonts.zip",
-      "external_ui_download_detour": "🌐 Internet",
-      "default_mode": "rule",
-      "access_control_allow_origin": "*"
+            "auto_route": true,
+            "strict_route": true,
+            "stack": "gvisor",
+            "sniff": true,
+            "endpoint_independent_nat": true
+        },
+        {
+            "type": "mixed",
+            "tag": "mixed-in",
+            "listen": "0.0.0.0",
+            "listen_port": 2080,
+            "tcp_fast_open": true,
+            "sniff": true,
+            "sniff_override_destination": true
+        },
+        {
+            "type": "socks",
+            "tag": "socks-in",
+            "listen": "0.0.0.0",
+            "listen_port": 2082,
+            "tcp_fast_open": true
+        },
+        {
+            "type": "direct",
+            "tag": "direct-in",
+            "override_address": "112.215.203.246",
+            "override_port": 53
+        }
+    ],
+    "outbounds": [
+        {
+            "type": "selector",
+            "tag": "🌐 Internet",
+            "outbounds": [
+                "🚀 Latency",
+                "direct-out",
+                
+            ],
+            "default": "🚀 Latency"
+        },
+        {
+            "type": "urltest",
+            "tag": "🚀 Latency",
+            "outbounds": [
+
+                
+            ],
+            "url": "https://connectivitycheck.gstatic.com/generate_204",
+            "interval": "1m30s",
+            "tolerance": 60,
+            "idle_timeout": "5m0s"
+        },
+        {
+            "type": "direct",
+            "tag": "direct-out"
+        },
+        {
+            "type": "block",
+            "tag": "block"
+        },
+        
+    ],
+    "route": {
+        "rules": [
+            {
+                "type": "logical",
+                "mode": "or",
+                "rules": [
+                    {
+                        "protocol": "dns"
+                    },
+                    {
+                        "port": 53
+                    }
+                ],
+                "action": "hijack-dns"
+            }
+        ],
+        "final": "🌐 Internet",
+        "auto_detect_interface": true
+    },
+    "experimental": {
+        "clash_api": {
+            "external_controller": "0.0.0.0:9090",
+            "external_ui": "dist",
+            "external_ui_download_url": "https://github.com/Zephyruso/zashboard/releases/latest/download/dist-cdn-fonts.zip",
+            "external_ui_download_detour": "🌐 Internet",
+            "default_mode": "rule",
+            "access_control_allow_origin": "*"
+        }
     }
-  }
 }
